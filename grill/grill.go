@@ -11,7 +11,7 @@ import (
 
 var ErrNoCommand = errors.New("couldn't read any commands")
 
-// Test is a single cram test. It is comprised of documentation, commands, and
+// Test is a single grill test. It is comprised of documentation, commands, and
 // expected test results.
 // TODO: Use [][]byte for ExpectedResults to avoid copies.
 type Test struct {
@@ -58,7 +58,7 @@ func multiReader(b [][]byte) io.Reader {
 	return io.MultiReader(readers...)
 }
 
-// A TestSuite represents a single cram test file.
+// A TestSuite represents a single grill test file.
 type TestSuite struct {
 	Name  string
 	Dir   string
