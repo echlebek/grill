@@ -25,7 +25,7 @@ func makeSpecs() []spec {
 		{
 			doc:     "Run grill examples:\n\n",
 			command: []string{"grill", "-q", "examples", "examples/fail.t"},
-			results: "🔥s🔥!🔥s🔥\n# Ran 7 tests, 2 skipped, 1 failed.\n[1]\n",
+			results: ".s.!.s.\n# Ran 7 tests, 2 skipped, 1 failed.\n[1]\n",
 		},
 		{
 			command: []string{"md5", "examples/fail.t", "examples/fail.t.err"},
