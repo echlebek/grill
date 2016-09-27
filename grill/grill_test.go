@@ -68,10 +68,6 @@ func TestReadTests(t *testing.T) {
 		tests = append(tests, test)
 	}
 
-	for i := range tests {
-		fmt.Println(string(tests[i].command))
-	}
-
 	if len(tests) != len(specs) {
 		t.Fatalf("wrong number of tests: got %d, want %d", len(tests), len(specs))
 	}
