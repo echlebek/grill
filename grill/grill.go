@@ -21,8 +21,8 @@ type Test struct {
 	obsResults [][]byte
 }
 
-func (t Test) Doc() io.Reader {
-	return multiReader(t.doc)
+func (t Test) Doc() string {
+	return byteSlicesToString(t.doc)
 }
 
 func (t Test) Command() []string {
@@ -36,26 +36,24 @@ func (t Test) Command() []string {
 	return result
 }
 
-func (t Test) ExpectedResults() io.Reader {
-	return multiReader(t.expResults)
-}
-
-func (t Test) ObservedResults() io.Reader {
-	return multiReader(t.obsResults)
-}
-
-// I think this is a little silly, but it reflects what I'd like
-// to see the interface look like.
-func multiReader(b [][]byte) io.Reader {
-	readers := make([]io.Reader, len(b)*2)
-	for i := range readers {
-		if i%2 == 0 {
-			readers[i] = bytes.NewReader(b[i/2])
-		} else {
-			readers[i] = bytes.NewReader([]byte{'\n'})
-		}
+func byteSlicesToString(slice [][]byte) string {
+	if len(slice) == 0 {
+		return ""
 	}
-	return io.MultiReader(readers...)
+	result := make([]byte, 0)
+	for _, b := range slice {
+		result = append(result, b...)
+		result = append(result, '\n')
+	}
+	return string(result[:len(result)-1])
+}
+
+func (t Test) ExpectedResults() string {
+	return byteSlicesToString(t.expResults)
+}
+
+func (t Test) ObservedResults() string {
+	return byteSlicesToString(t.obsResults)
 }
 
 // A TestSuite represents a single grill test file.
@@ -120,15 +118,7 @@ func (suite TestSuite) WriteReport(w io.Writer, differ Differ) error {
 }
 
 func (t *Test) Failed() bool {
-	if len(t.expResults) != len(t.obsResults) {
-		return true
-	}
-	for i := range t.expResults {
-		if !bytes.Equal(t.expResults[i], t.obsResults[i]) {
-			return true
-		}
-	}
-	return false
+	return t.ExpectedResults() != t.ObservedResults()
 }
 
 const (
