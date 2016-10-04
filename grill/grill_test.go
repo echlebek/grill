@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"reflect"
 	"testing"
 )
@@ -84,20 +83,4 @@ func TestReadTests(t *testing.T) {
 			t.Errorf("test %d: bad expected results: got %q, want %q", i, got, want)
 		}
 	}
-}
-
-func printR(r io.Reader) string {
-	b, err := ioutil.ReadAll(r)
-	if err != nil {
-		panic(err)
-	}
-	return string(b)
-}
-
-func cmpReaderAndString(t *testing.T, r io.Reader, s string) bool {
-	b, err := ioutil.ReadAll(r)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return bytes.Equal(b, []byte(s))
 }
