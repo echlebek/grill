@@ -101,7 +101,7 @@ func (suite TestSuite) WriteErr() error {
 // WriteReport writes out a report of the diff between the test's
 // ExpectedResults and ObservedResults, or a '.' if the testsuite
 // succeeded.
-func (suite TestSuite) WriteReport(w io.Writer, differ Differ) error {
+func (suite TestSuite) WriteReport(w io.Writer) error {
 	if !suite.Failed() {
 		if _, err := w.Write([]byte{'.'}); err != nil {
 			return fmt.Errorf("couldn't write %q: %s", suite.Name+".err", err)
@@ -109,7 +109,7 @@ func (suite TestSuite) WriteReport(w io.Writer, differ Differ) error {
 	}
 	for _, t := range suite.Tests {
 		exp, obs := t.ExpectedResults(), t.ObservedResults()
-		diff := differ.Diff(exp, obs, suite.Name, suite.Name+".err")
+		diff := Diff([]byte(exp), []byte(obs))
 		if _, err := w.Write(diff); err != nil {
 			return fmt.Errorf("couldn't write %q: %s", suite.Name+".err", err)
 		}
