@@ -19,6 +19,7 @@ type TestContext struct {
 	WorkDir string
 	Shell   []string
 	Stdout  io.Writer
+	Stderr  io.Writer
 }
 
 // Default environment variables set by grill.
@@ -31,7 +32,7 @@ CDPATH=''
 GREP_OPTIONS=''`
 
 // DefaultTestContext creates a new TestContext with environment defaults.
-func DefaultTestContext(testdir, shell string) (TestContext, error) {
+func DefaultTestContext(testdir, shell string, stdout, stderr io.Writer) (TestContext, error) {
 	// TODO support TESTFILE elsewhere
 	td, err := ioutil.TempDir("", "grill")
 	env := []string{
@@ -49,7 +50,13 @@ func DefaultTestContext(testdir, shell string) (TestContext, error) {
 		"CDPATH=''",
 		"GREP_OPTIONS=''",
 	}
-	return TestContext{Shell: strings.Split(shell, " "), WorkDir: td, Environ: env, Stdout: os.Stdout}, err
+	return TestContext{
+		Shell:   strings.Split(shell, " "),
+		WorkDir: td,
+		Environ: env,
+		Stdout:  stdout,
+		Stderr:  stderr,
+	}, err
 }
 
 // Cleanup removes the working directory of the test.
