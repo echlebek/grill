@@ -14,7 +14,7 @@ func TestRunTest(t *testing.T) {
 		},
 		command: []byte("echo foobar"),
 		expResults: [][]byte{
-			[]byte("foobar\n"),
+			[]byte("foobar"),
 		},
 	}
 

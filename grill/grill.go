@@ -13,7 +13,6 @@ var ErrNoCommand = errors.New("couldn't read any commands")
 
 // Test is a single grill test. It is comprised of documentation, commands, and
 // expected test results.
-// TODO: Use [][]byte for ExpectedResults to avoid copies.
 type Test struct {
 	doc        [][]byte
 	command    []byte
@@ -102,19 +101,27 @@ func (suite TestSuite) WriteErr() error {
 // ExpectedResults and ObservedResults, or a '.' if the testsuite
 // succeeded.
 func (suite TestSuite) WriteReport(w io.Writer) error {
-	if !suite.Failed() {
-		if _, err := w.Write([]byte{'.'}); err != nil {
-			return fmt.Errorf("couldn't write %q: %s", suite.Name+".err", err)
-		}
+	if _, err := w.Write([]byte{'\n'}); err != nil {
+		return err
 	}
+	tests, failed := 0, 0
 	for _, t := range suite.Tests {
-		exp, obs := t.ExpectedResults(), t.ObservedResults()
-		diff := Diff([]byte(exp), []byte(obs))
-		if _, err := w.Write(diff); err != nil {
-			return fmt.Errorf("couldn't write %q: %s", suite.Name+".err", err)
+		if t.Failed() {
+			exp, obs := t.ExpectedResults(), t.ObservedResults()
+			diff := Diff([]byte(exp), []byte(obs), suite.Name)
+			if _, err := w.Write(diff); err != nil {
+				return fmt.Errorf("couldn't write %q: %s", suite.Name+".err", err)
+			}
+			failed++
 		}
+		tests++
 	}
-	return nil
+	plural := "s"
+	if tests == 1 {
+		plural = ""
+	}
+	_, err := fmt.Fprintf(w, "# Ran %d test%s, %d failed.\n", tests, plural, failed)
+	return err
 }
 
 func (t *Test) Failed() bool {

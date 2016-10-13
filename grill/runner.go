@@ -89,6 +89,9 @@ func (t *Test) Run(ctx TestContext) error {
 	}
 
 	t.obsResults = bytes.Split(buf.Bytes(), []byte{'\n'})
+	if len(t.obsResults[len(t.obsResults)-1]) == 0 {
+		t.obsResults = t.obsResults[:len(t.obsResults)-1]
+	}
 
 	if t.Failed() {
 		if _, err := ctx.Stdout.Write([]byte{'!'}); err != nil {

@@ -2,11 +2,14 @@ package grill
 
 import (
 	"bytes"
+	"fmt"
 	"path/filepath"
 	"regexp"
 
 	"github.com/mb0/diff"
 )
+
+const ContextLines = 5
 
 type FuzzyMatchData struct {
 	a [][]byte
@@ -42,30 +45,41 @@ func matchGlob(a, b []byte) bool {
 	return match
 }
 
-func Diff(a, b []byte) []byte {
+func mapChanges(changes []diff.Change) map[[2]int][2]int {
+	result := make(map[[2]int][2]int, len(changes))
+	for _, c := range changes {
+		result[[2]int{c.A, c.B}] = [2]int{c.Ins, c.Del}
+	}
+	return result
+}
+
+func Diff(a, b []byte, name string) []byte {
 	// TODO: Add diff header and context
 	alines := bytes.Split(a, []byte("\n"))
 	blines := bytes.Split(b, []byte("\n"))
-	result := make([]byte, 0, len(alines)+len(blines))
+	w := new(bytes.Buffer)
 
 	d := FuzzyMatchData{alines, blines}
 
 	changes := diff.Diff(len(d.a), len(d.b), d)
+	if len(changes) == 0 {
+		return nil
+	}
+	fmt.Fprint(w, "--- ", name, "\n")
+	fmt.Fprint(w, "+++ ", name, ".err", "\n")
 
 	for _, c := range changes {
+		fmt.Fprintf(w, "@@ -%d,%d +%d,%d @@\n", c.A+1, c.Del+1, c.B+1, c.Ins+1)
+
 		delLines := alines[c.A : c.A+c.Del]
 		insLines := blines[c.B : c.B+c.Ins]
 
 		for _, line := range delLines {
-			result = append(result, '-', ' ')
-			result = append(result, line...)
-			result = append(result, '\n')
+			fmt.Fprint(w, "-  ", string(line), "\n")
 		}
 		for _, line := range insLines {
-			result = append(result, '+', ' ')
-			result = append(result, line...)
-			result = append(result, '\n')
+			fmt.Fprint(w, "+  ", string(line), "\n")
 		}
 	}
-	return result
+	return w.Bytes()
 }
