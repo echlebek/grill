@@ -45,16 +45,7 @@ func matchGlob(a, b []byte) bool {
 	return match
 }
 
-func mapChanges(changes []diff.Change) map[[2]int][2]int {
-	result := make(map[[2]int][2]int, len(changes))
-	for _, c := range changes {
-		result[[2]int{c.A, c.B}] = [2]int{c.Ins, c.Del}
-	}
-	return result
-}
-
 func Diff(a, b []byte, name string) []byte {
-	// TODO: Add diff header and context
 	alines := bytes.Split(a, []byte("\n"))
 	blines := bytes.Split(b, []byte("\n"))
 	w := new(bytes.Buffer)
