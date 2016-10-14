@@ -69,3 +69,24 @@ func TestGrillFail(t *testing.T) {
 		t.Errorf("bad Stderr: %q", stderr)
 	}
 }
+
+func TestGrillPass(t *testing.T) {
+	ctx, err := newTestCtx(testData)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := Main([]string{"grill", ctx.Test.Name()}, ctx.Stdout, ctx.Stderr); err != nil {
+		t.Fatal(err)
+	}
+
+	if want, got := ".", string(ctx.Stdout.Bytes()); got != want {
+		t.Errorf("bad stdout: got %q, want %q", got, want)
+	}
+
+	got := string(ctx.Stderr.Bytes())
+	want := "\n# Ran 1 test, 0 failed.\n"
+	if got != want {
+		t.Errorf("bad stderr: got %q, want %q", got, want)
+	}
+}
