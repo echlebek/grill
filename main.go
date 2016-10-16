@@ -44,7 +44,7 @@ func readTestSuite(path string) (ts *grill.TestSuite, err error) {
 
 func Main(args []string, stdout, stderr io.Writer) error {
 	args = args[1:]
-	context, err := grill.DefaultTestContext(".", "bash --login", stdout, stderr)
+	context, err := grill.DefaultTestContext(".", "bash", stdout, stderr)
 	if err != nil {
 		return err
 	}

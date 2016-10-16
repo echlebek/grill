@@ -24,15 +24,8 @@ func (t Test) Doc() string {
 	return byteSlicesToString(t.doc)
 }
 
-func (t Test) Command() []string {
-	parts := bytes.Split(t.command, []byte{' '})
-	result := make([]string, 0, len(parts))
-	for _, p := range parts {
-		if len(p) > 0 {
-			result = append(result, string(p))
-		}
-	}
-	return result
+func (t Test) Command() io.Reader {
+	return bytes.NewReader(t.command)
 }
 
 func byteSlicesToString(slice [][]byte) string {

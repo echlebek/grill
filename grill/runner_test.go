@@ -34,7 +34,7 @@ func TestRunTest(t *testing.T) {
 
 	ctx := TestContext{
 		Stdout:  stdout,
-		Shell:   []string{},
+		Shell:   []string{"bash"},
 		WorkDir: dir,
 		Environ: os.Environ(),
 	}
