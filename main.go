@@ -1,6 +1,8 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -9,6 +11,7 @@ import (
 )
 
 func main() {
+	flag.Parse()
 	if err := Main(os.Args, os.Stdout, os.Stderr); err != nil {
 		log.Fatal(err)
 	}
@@ -43,7 +46,11 @@ func readTestSuite(path string) (ts *grill.TestSuite, err error) {
 }
 
 func Main(args []string, stdout, stderr io.Writer) error {
-	args = args[1:]
+	args = flag.Args()
+	if len(args) == 0 {
+		fmt.Fprint(stdout, "Usage: grill [OPTIONS] TESTS...\n")
+		os.Exit(2)
+	}
 	context, err := grill.DefaultTestContext(".", "bash", stdout, stderr)
 	if err != nil {
 		return err

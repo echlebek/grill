@@ -58,7 +58,7 @@ func TestGrillFail(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := Main([]string{"grill", ctx.Test.Name()}, ctx.Stdout, ctx.Stderr); err != nil {
+	if err := Main([]string{ctx.Test.Name()}, ctx.Stdout, ctx.Stderr); err != nil {
 		t.Fatal(err)
 	}
 	if want, got := "!", string(ctx.Stdout.Bytes()); got != want {
@@ -76,7 +76,7 @@ func TestGrillPass(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := Main([]string{"grill", ctx.Test.Name()}, ctx.Stdout, ctx.Stderr); err != nil {
+	if err := Main([]string{ctx.Test.Name()}, ctx.Stdout, ctx.Stderr); err != nil {
 		t.Fatal(err)
 	}
 
