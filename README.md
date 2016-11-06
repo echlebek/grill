@@ -15,6 +15,7 @@ TODO:
 
 WONTFIX:
   * PCRE is not supported. Instead, Go's regexp language is.
+  * Short flags are not supported.
 
 There are probably lots of bugs at this point, bug reports and test cases would
 be appreciated.
