@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -10,11 +9,10 @@ import (
 	"github.com/echlebek/grill/grill"
 )
 
+const grillVersion = "dev"
+
 func main() {
-	flag.Parse()
-	if err := Main(os.Args, os.Stdout, os.Stderr); err != nil {
-		log.Fatal(err)
-	}
+	os.Exit(Main(os.Args[1:], os.Stdout, os.Stderr))
 }
 
 func readTestSuite(path string) (ts *grill.TestSuite, err error) {
@@ -45,28 +43,44 @@ func readTestSuite(path string) (ts *grill.TestSuite, err error) {
 	return &grill.TestSuite{Tests: tests, Name: path}, nil
 }
 
-func Main(args []string, stdout, stderr io.Writer) error {
-	args = flag.Args()
+func Main(a []string, stdout, stderr io.Writer) int {
+	if err := flags.Parse(a); err != nil {
+		stderr.Write([]byte(err.Error()))
+		return 2
+	}
+	args := flags.Args()
+	if *opts.version {
+		fmt.Fprintln(stderr, grillVersion)
+		return 0
+	}
 	if len(args) == 0 {
-		fmt.Fprint(stdout, "Usage: grill [OPTIONS] TESTS...\n")
-		os.Exit(2)
+		fmt.Fprint(stderr, "Usage: grill [OPTIONS] TESTS...\n")
+		return 2
 	}
 	context, err := grill.DefaultTestContext(".", "bash", stdout, stderr)
 	if err != nil {
-		return err
+		log.Println(err)
+		return 1
 	}
+
+	rc := 0
 
 	for _, a := range args {
 		suite, err := readTestSuite(a)
 		if err != nil {
+			rc = 1
 			log.Println(err)
 		}
 
 		for i := range suite.Tests {
 			err := suite.Tests[i].Run(context)
 			if err != nil {
+				rc = 1
 				log.Println(err)
 			}
+		}
+		if suite.Failed() {
+			rc = 1
 		}
 		if err := suite.WriteErr(); err != nil {
 			log.Println(err)
@@ -76,5 +90,5 @@ func Main(args []string, stdout, stderr io.Writer) error {
 		}
 	}
 
-	return nil
+	return rc
 }

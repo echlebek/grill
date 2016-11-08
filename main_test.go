@@ -58,8 +58,8 @@ func TestGrillFail(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := Main([]string{ctx.Test.Name()}, ctx.Stdout, ctx.Stderr); err != nil {
-		t.Fatal(err)
+	if got, want := Main([]string{ctx.Test.Name()}, ctx.Stdout, ctx.Stderr), 1; got != want {
+		t.Errorf("bad return code: got %d, want %d", got, want)
 	}
 	if want, got := "!", string(ctx.Stdout.Bytes()); got != want {
 		t.Errorf("bad stdout: got %q, want %q", got, want)
@@ -76,8 +76,8 @@ func TestGrillPass(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := Main([]string{ctx.Test.Name()}, ctx.Stdout, ctx.Stderr); err != nil {
-		t.Fatal(err)
+	if got, want := Main([]string{ctx.Test.Name()}, ctx.Stdout, ctx.Stderr), 0; got != want {
+		t.Errorf("bad return code: got %d, want %d", got, want)
 	}
 
 	if want, got := ".", string(ctx.Stdout.Bytes()); got != want {
@@ -88,5 +88,20 @@ func TestGrillPass(t *testing.T) {
 	want := "\n# Ran 1 test, 0 failed.\n"
 	if got != want {
 		t.Errorf("bad stderr: got %q, want %q", got, want)
+	}
+}
+
+func TestGrillVersion(t *testing.T) {
+	ctx, err := newTestCtx(testData)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := Main([]string{"-version", "foo", "bar", "baz"}, ctx.Stdout, ctx.Stderr), 0; got != want {
+		t.Errorf("bad return code: got %d, want %d", got, want)
+	}
+	got := string(ctx.Stderr.Bytes())
+	want := grillVersion + "\n"
+	if got != want {
+		t.Errorf("bad version: got %q, want %q", got, want)
 	}
 }

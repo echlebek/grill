@@ -5,37 +5,37 @@ import (
 	"flag"
 )
 
-var (
-	opts = struct {
-		version     *bool
-		quiet       *bool
-		verbose     *bool
-		interactive *bool
-		debug       *bool
-		yes         *bool
-		no          *bool
-		preserveEnv *bool
-		keepTmpdir  *bool
-		shell       *string
-		shellOpts   *string
-		xunitFile   *string
-		indent      *int
-	}{
-		version:     flag.Bool("version", false, "show version information and exit"),
-		quiet:       flag.Bool("quiet", false, "don't print diffs"),
-		verbose:     flag.Bool("verbose", false, "show filenames and test status"),
-		interactive: flag.Bool("interactive", false, "interactively merge changed test output"),
-		debug:       flag.Bool("debug", false, "write script output directly to the terminal"),
-		yes:         flag.Bool("yes", false, "answer yes to all questions"),
-		no:          flag.Bool("no", false, "answer no to all questions"),
-		preserveEnv: flag.Bool("preserve-env", false, "don't reset common environment variables"),
-		keepTmpdir:  flag.Bool("keep-tmpdir", false, "keep temporary directories"),
-		shell:       flag.String("shell", "/bin/sh", "shell to use for running tests"),
-		shellOpts:   flag.String("shell-opts", "", "arguments to invoke shell with"),
-		xunitFile:   flag.String("xunit-file", "", "path to write xUnit XML output"),
-		indent:      flag.Int("indent", 2, "number of spaces to use for indentation"),
-	}
-)
+var flags = flag.NewFlagSet("grill", flag.PanicOnError)
+
+var opts = struct {
+	version     *bool
+	quiet       *bool
+	verbose     *bool
+	interactive *bool
+	debug       *bool
+	yes         *bool
+	no          *bool
+	preserveEnv *bool
+	keepTmpdir  *bool
+	shell       *string
+	shellOpts   *string
+	xunitFile   *string
+	indent      *int
+}{
+	version:     flags.Bool("version", false, "show version information and exit"),
+	quiet:       flags.Bool("quiet", false, "don't print diffs (unsupported)"),
+	verbose:     flags.Bool("verbose", false, "show filenames and test status (unsupported)"),
+	interactive: flags.Bool("interactive", false, "interactively merge changed test output (unsupported)"),
+	debug:       flags.Bool("debug", false, "write script output directly to the terminal (unsupported)"),
+	yes:         flags.Bool("yes", false, "answer yes to all questions (unsupported)"),
+	no:          flags.Bool("no", false, "answer no to all questions (unsupported)"),
+	preserveEnv: flags.Bool("preserve-env", false, "don't reset common environment variables (unsupported)"),
+	keepTmpdir:  flags.Bool("keep-tmpdir", false, "keep temporary directories (unsupported)"),
+	shell:       flags.String("shell", "/bin/sh", "shell to use for running tests (unsupported)"),
+	shellOpts:   flags.String("shell-opts", "", "arguments to invoke shell with (unsupported)"),
+	xunitFile:   flags.String("xunit-file", "", "path to write xUnit XML output (unsupported)"),
+	indent:      flags.Int("indent", 2, "number of spaces to use for indentation (unsupported)"),
+}
 
 func validateOptions() error {
 	if *opts.yes && *opts.no {
