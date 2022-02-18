@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"regexp"
+	"strconv"
 
 	"github.com/mb0/diff"
 	"github.com/mb0/glob"
@@ -23,13 +24,21 @@ func (f DiffData) Equal(i, j int) bool {
 	a := f.a[i]
 	b := f.b[j]
 
+	var v bool
+
 	if bytes.HasSuffix(a, []byte(" (re)")) {
-		return matchRegexp(a[:len(a)-5], b)
+		v = matchRegexp(a[:len(a)-5], b)
 	}
 	if bytes.HasSuffix(a, []byte(" (glob)")) {
-		return matchGlob(a[:len(a)-7], b)
+		v = matchGlob(a[:len(a)-7], b)
 	}
-	return bytes.Equal(a, b)
+	if bytes.HasSuffix(a, []byte(" (esc)")) {
+		v = matchEsc(a[:len(a)-6], b)
+	}
+
+	// All of the keywords may appear verbatim in command
+	// output, so check for direct equality every time.
+	return v || bytes.Equal(a, b)
 }
 
 func matchRegexp(a, b []byte) bool {
@@ -46,6 +55,15 @@ func matchGlob(a, b []byte) bool {
 		return bytes.Equal(a, b)
 	}
 	return match
+}
+
+func matchEsc(a, b []byte) bool {
+	// TODO there's probably a cleaner way to do it
+	s, err := strconv.Unquote(`"` + string(a) + `"`)
+	if err != nil {
+		return false
+	}
+	return s == string(b)
 }
 
 // NewDiff computes difference between two slices of text lines.
