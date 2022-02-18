@@ -29,13 +29,13 @@ func (f DiffData) Equal(i, j int) bool {
 	// All of the keywords may appear verbatim in command
 	// output, so check for direct equality every time.
 	if bytes.HasSuffix(a, []byte(" (re)")) {
-		return matchRegexp(a[:len(a)-5], b) || v
+		return v || matchRegexp(a[:len(a)-5], b)
 	}
 	if bytes.HasSuffix(a, []byte(" (glob)")) {
-		return matchGlob(a[:len(a)-7], b) || v
+		return v || matchGlob(a[:len(a)-7], b)
 	}
 	if bytes.HasSuffix(a, []byte(" (esc)")) {
-		return matchEsc(a[:len(a)-6], b) || v
+		return v || matchEsc(a[:len(a)-6], b)
 	}
 
 	return v
