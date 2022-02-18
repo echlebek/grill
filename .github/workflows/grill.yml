@@ -17,6 +17,6 @@ jobs:
       with:
         go-version: 1.17.7
     - name: Build
-      run: go build -o cram -v .
+      run: go build ./cmd/grill
     - name: Test
       run: bash test.sh

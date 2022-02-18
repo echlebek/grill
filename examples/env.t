@@ -17,13 +17,13 @@ Check environment variables:
   $ echo "$TESTDIR"
   **/examples (glob)
   $ ls "$TESTDIR"
+  bare.t
   env.t
+  missingeol.t
 
 # TODO re-enable when files are added back
-# bare.t
 # empty.t
 # fail.t
-# missingeol.t
 # skip.t
 # test.t
 

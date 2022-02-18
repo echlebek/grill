@@ -1,5 +1,10 @@
-go test .
+set -e
 
+go test ./cmd/grill ./internal/...
+
+export PATH=`pwd`:$PATH
 export LANG=C
+
 rm -f examples/*.err
-./cram --quiet examples/env.t
+
+grill examples/*.t tests/*.t

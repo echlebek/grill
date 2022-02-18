@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/echlebek/grill/grill"
+	"github.com/echlebek/grill/internal/grill"
 )
 
 const grillVersion = "dev"
@@ -85,9 +85,9 @@ func Main(a []string, stdout, stderr io.Writer) int {
 		}
 		if suite.Failed() {
 			rc = 1
-		}
-		if err := suite.WriteErr(); err != nil {
-			log.Println(err)
+			if err := suite.WriteErr(); err != nil {
+				log.Println(err)
+			}
 		}
 		if err := suite.WriteReport(stderr); err != nil {
 			log.Println(err)
