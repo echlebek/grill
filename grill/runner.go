@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"syscall"
 )
@@ -25,34 +26,43 @@ type TestContext struct {
 // Default environment variables set by grill.
 const DefaultEnvironment = `LANG=C
 LC_ALL=C
-LANGAUGE=C
+LANGUAGE=C
 TZ=GMT
 COLUMNS=80
-CDPATH=''
-GREP_OPTIONS=''`
+CDPATH=
+GREP_OPTIONS=`
 
 // DefaultTestContext creates a new TestContext with environment defaults.
-func DefaultTestContext(testdir, shell string, stdout, stderr io.Writer) (TestContext, error) {
-	// TODO support TESTFILE elsewhere
-	td, err := ioutil.TempDir("", "grill")
+//
+// The function is meant to be called once per grill command invocation and
+// creates two things:
+//
+//  - An overall working directory root in default TMPDIR
+//  - A single local {workdir}/tmp temporary directory for all of the executed tests
+//
+// As tests execute later on, they will create named sub-directories
+// that will serve as their individual working directories.
+func DefaultTestContext(shell string, stdout, stderr io.Writer) (TestContext, error) {
+	wd, err := ioutil.TempDir("", "grilltests")
+	td := filepath.Join(wd, "tmp")
+	if err := os.Mkdir(td, 0700); err != nil {
+		return TestContext{}, err
+	}
+
 	env := []string{
 		fmt.Sprintf("TMPDIR=%s", td),
 		fmt.Sprintf("TEMP=%s", td),
 		fmt.Sprintf("TMP=%s", td),
 		fmt.Sprintf("GRILLTMP=%s", td),
-		fmt.Sprintf("TESTDIR=%s", testdir),
+		fmt.Sprintf("CRAMTMP=%s", td),
 		fmt.Sprintf("TESTSHELL=%q", shell),
-		"LANG=C",
-		"LC_ALL=C",
-		"LANGAUGE=C",
-		"TZ=GMT",
-		"COLUMNS=80",
-		"CDPATH=''",
-		"GREP_OPTIONS=''",
 	}
+	// TODO Handle --preserve-env flag
+	env = append(env, strings.Split(DefaultEnvironment, "\n")...)
+	env = append(env, os.Environ()...)
 	return TestContext{
 		Shell:   strings.Split(shell, " "),
-		WorkDir: td,
+		WorkDir: wd,
 		Environ: env,
 		Stdout:  stdout,
 		Stderr:  stderr,
@@ -80,11 +90,28 @@ func (t *Test) Run(ctx TestContext) error {
 	cmd.Stdout = buf
 	cmd.Stderr = buf
 	cmd.Stdin = t.Command()
-	cmd.Env = ctx.Environ
-	cmd.Dir = ctx.WorkDir
 
-	err := cmd.Start()
+	// Add test specific variables
+	testdir, err := filepath.Abs(filepath.Dir(t.Filepath))
 	if err != nil {
+		return err
+	}
+
+	basename := filepath.Base(t.Filepath)
+
+	// Create working directory for individual source file
+	cmd.Dir = filepath.Join(ctx.WorkDir, basename)
+	if err := os.Mkdir(cmd.Dir, 0700); err != nil && !os.IsExist(err) {
+		return err
+	}
+
+	cmd.Env = append(ctx.Environ, []string{
+		// TODO escape spaces in paths?
+		fmt.Sprintf("TESTFILE=%s", basename),
+		fmt.Sprintf("TESTDIR=%s", testdir),
+	}...)
+
+	if err = cmd.Start(); err != nil {
 		return fmt.Errorf("couldn't run command: %s", err)
 	}
 	if err = cmd.Wait(); err != nil {
@@ -103,6 +130,8 @@ func (t *Test) Run(ctx TestContext) error {
 	if len(t.obsResults[len(t.obsResults)-1]) == 0 {
 		t.obsResults = t.obsResults[:len(t.obsResults)-1]
 	}
+
+	t.diff = NewDiff([]byte(t.ExpectedResults()), []byte(t.ObservedResults()))
 
 	if t.Failed() {
 		if _, err := ctx.Stdout.Write([]byte{'!'}); err != nil {

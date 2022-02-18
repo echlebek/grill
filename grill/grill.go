@@ -14,10 +14,12 @@ var ErrNoCommand = errors.New("couldn't read any commands")
 // Test is a single grill test. It is comprised of documentation, commands, and
 // expected test results.
 type Test struct {
+	Filepath   string
 	doc        [][]byte
 	command    []byte
 	expResults [][]byte
 	obsResults [][]byte
+	diff       DiffData
 }
 
 func (t Test) Doc() string {
@@ -100,8 +102,7 @@ func (suite TestSuite) WriteReport(w io.Writer) error {
 	tests, failed := 0, 0
 	for _, t := range suite.Tests {
 		if t.Failed() {
-			exp, obs := t.ExpectedResults(), t.ObservedResults()
-			diff := Diff([]byte(exp), []byte(obs), suite.Name)
+			diff := t.diff.ToString(suite.Name)
 			if _, err := w.Write(diff); err != nil {
 				return fmt.Errorf("couldn't write %q: %s", suite.Name+".err", err)
 			}
@@ -118,7 +119,7 @@ func (suite TestSuite) WriteReport(w io.Writer) error {
 }
 
 func (t *Test) Failed() bool {
-	return t.ExpectedResults() != t.ObservedResults()
+	return len(t.diff.changes) > 0
 }
 
 const (
