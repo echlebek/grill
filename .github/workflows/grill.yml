@@ -1,0 +1,22 @@
+name: grill
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build_go117:
+    name: 'go 1.17.x'
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.17.7
+    - name: Build
+      run: go build -o cram -v .
+    - test: Test
+      run: bash test.sh
