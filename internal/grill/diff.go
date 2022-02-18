@@ -24,21 +24,21 @@ func (f DiffData) Equal(i, j int) bool {
 	a := f.a[i]
 	b := f.b[j]
 
-	v := bytes.Equal(a, b)
+	var v bool
+
+	if bytes.HasSuffix(a, []byte(" (re)")) {
+		v = matchRegexp(a[:len(a)-5], b)
+	}
+	if bytes.HasSuffix(a, []byte(" (glob)")) {
+		v = matchGlob(a[:len(a)-7], b)
+	}
+	if bytes.HasSuffix(a, []byte(" (esc)")) {
+		v = matchEsc(a[:len(a)-6], b)
+	}
 
 	// All of the keywords may appear verbatim in command
 	// output, so check for direct equality every time.
-	if bytes.HasSuffix(a, []byte(" (re)")) {
-		return v || matchRegexp(a[:len(a)-5], b)
-	}
-	if bytes.HasSuffix(a, []byte(" (glob)")) {
-		return v || matchGlob(a[:len(a)-7], b)
-	}
-	if bytes.HasSuffix(a, []byte(" (esc)")) {
-		return v || matchEsc(a[:len(a)-6], b)
-	}
-
-	return v
+	return v || bytes.Equal(a, b)
 }
 
 func matchRegexp(a, b []byte) bool {
