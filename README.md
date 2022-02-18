@@ -12,6 +12,7 @@ TODO:
   * Support cram's environment variables.
   * Gradually add support for cram's command-line flags.
   * Flesh out the tests for the test.t reader.
+  * Persist new shell variables between commands.
 
 WONTFIX:
   * PCRE is not supported. Instead, Go's regexp language is.
