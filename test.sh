@@ -1,10 +1,10 @@
-# set -e
+set -e
 
-go test .
+go test ./cmd/grill ./internal
 
 export PATH=`pwd`:$PATH
 export LANG=C
 
 rm -f examples/*.err
 
-cram examples/*.t tests/*.t
+grill examples/*.t tests/*.t

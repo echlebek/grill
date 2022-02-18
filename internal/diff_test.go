@@ -1,4 +1,4 @@
-package grill
+package internal
 
 import (
 	"fmt"
@@ -12,7 +12,7 @@ type test struct {
 }
 
 var tests = []test{
-	test{
+	{
 		Old: `Here is a line
 there are many like it
 but this one is mine.
@@ -28,7 +28,7 @@ but this one is mine.
 +  Here is a mine
 `,
 	},
-	test{
+	{
 		Old: `Here is a line
 There are \d+ like it (re)
 But this one is mine.
@@ -39,7 +39,7 @@ But this one is mine.
 `,
 		ExpectedDiff: ``,
 	},
-	test{
+	{
 		Old: `Here is a line
 There are to* like it (glob)
 But this one is mine.
@@ -50,7 +50,7 @@ But this one is mine.
 `,
 		ExpectedDiff: ``,
 	},
-	test{
+	{
 		Old: `Here is some text
 The next few lines
 will change quite a bit
@@ -80,7 +80,8 @@ but not this one.
 
 func TestDiff(t *testing.T) {
 	for i, test := range tests {
-		got := string(Diff([]byte(test.Old), []byte(test.New), "mytest.t"))
+		d := NewDiff([]byte(test.Old), []byte(test.New))
+		got := string(d.ToString("mytest.t"))
 		want := test.ExpectedDiff
 		if got != want {
 			fmt.Println(got)

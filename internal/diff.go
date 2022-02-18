@@ -1,4 +1,4 @@
-package grill
+package internal
 
 import (
 	"bytes"
