@@ -34,6 +34,8 @@ func readTestSuite(path string) (ts *grill.TestSuite, err error) {
 
 	for err == nil {
 		err = r.Read(&t)
+
+		t.Filepath = path
 		tests = append(tests, t)
 	}
 	if err != io.EOF && err != nil {
@@ -57,7 +59,8 @@ func Main(a []string, stdout, stderr io.Writer) int {
 		fmt.Fprint(stderr, "Usage: grill [OPTIONS] TESTS...\n")
 		return 2
 	}
-	context, err := grill.DefaultTestContext(".", "bash", stdout, stderr)
+
+	context, err := grill.DefaultTestContext("bash", stdout, stderr)
 	if err != nil {
 		log.Println(err)
 		return 1
@@ -70,6 +73,7 @@ func Main(a []string, stdout, stderr io.Writer) int {
 		if err != nil {
 			rc = 1
 			log.Println(err)
+			continue
 		}
 
 		for i := range suite.Tests {
