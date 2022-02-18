@@ -17,5 +17,8 @@ WONTFIX:
   * PCRE is not supported. Instead, Go's regexp language is.
   * Short flags are not supported.
 
+Additional differences:
+  * glob keyword: Use `**` to glob across directory separators.
+
 There are probably lots of bugs at this point, bug reports and test cases would
 be appreciated.

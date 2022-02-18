@@ -25,9 +25,8 @@ Check environment variables:
   skip.t
   test.t
 
-# TODO
-#  $ echo "$TESTFILE"
-#  env.t
+  $ echo "$TESTFILE"
+  env.t
 
   $ pwd
   **/grilltests*/env.t (glob)

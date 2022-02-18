@@ -97,15 +97,17 @@ func (t *Test) Run(ctx TestContext) error {
 		return err
 	}
 
+	basename := filepath.Base(t.Filepath)
+
 	// Create working directory for individual source file
-	cmd.Dir = filepath.Join(ctx.WorkDir, filepath.Base(t.Filepath))
+	cmd.Dir = filepath.Join(ctx.WorkDir, basename)
 	if err := os.Mkdir(cmd.Dir, 0700); err != nil && !os.IsExist(err) {
 		return err
 	}
 
 	cmd.Env = append(ctx.Environ, []string{
 		// TODO escape spaces in paths?
-		fmt.Sprintf("TESTFILE=%s", t.Filepath),
+		fmt.Sprintf("TESTFILE=%s", basename),
 		fmt.Sprintf("TESTDIR=%s", testdir),
 	}...)
 
