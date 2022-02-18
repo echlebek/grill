@@ -1,6 +1,6 @@
 set -e
 
-go test ./cmd/grill ./internal
+go test ./cmd/grill ./internal/...
 
 export PATH=`pwd`:$PATH
 export LANG=C

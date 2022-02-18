@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 
-	grill "github.com/echlebek/grill/internal"
+	"github.com/echlebek/grill/internal/grill"
 )
 
 const grillVersion = "dev"
