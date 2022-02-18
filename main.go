@@ -85,9 +85,9 @@ func Main(a []string, stdout, stderr io.Writer) int {
 		}
 		if suite.Failed() {
 			rc = 1
-		}
-		if err := suite.WriteErr(); err != nil {
-			log.Println(err)
+			if err := suite.WriteErr(); err != nil {
+				log.Println(err)
+			}
 		}
 		if err := suite.WriteReport(stderr); err != nil {
 			log.Println(err)

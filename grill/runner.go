@@ -115,14 +115,19 @@ func (t *Test) Run(ctx TestContext) error {
 		return fmt.Errorf("couldn't run command: %s", err)
 	}
 	if err = cmd.Wait(); err != nil {
-		exitErr, ok := err.(*exec.ExitError)
-		if ok {
+		if exitErr, ok := err.(*exec.ExitError); ok {
 			buf.Write(exitErr.Stderr)
 			status := exitErr.Sys()
 			if s, ok := status.(syscall.WaitStatus); ok {
 				fmt.Fprintf(buf, "[%d]", s.ExitStatus())
 			}
 			err = nil
+		}
+		// TODO else?
+	} else {
+		b := buf.Bytes()
+		if len(b) > 0 && b[len(b)-1] != '\n' {
+			buf.WriteString(" (no-eol)")
 		}
 	}
 
