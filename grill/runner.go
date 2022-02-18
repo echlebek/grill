@@ -122,8 +122,9 @@ func (t *Test) Run(ctx TestContext) error {
 				fmt.Fprintf(buf, "[%d]", s.ExitStatus())
 			}
 			err = nil
+		} else {
+			panic(fmt.Sprintf("command exited with unexpected error: %s", err))
 		}
-		// TODO else?
 	} else {
 		b := buf.Bytes()
 		if len(b) > 0 && b[len(b)-1] != '\n' {
