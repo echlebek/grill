@@ -50,6 +50,27 @@ func (t Test) ObservedResults() string {
 	return byteSlicesToString(t.obsResults)
 }
 
+func (t *Test) Failed() bool {
+	return len(t.diff.changes) > 0
+}
+
+func (t *Test) Skipped() bool {
+	return len(t.command) == 0
+}
+
+// StatusGlyph returns a sequence of characters
+// that represents the test status and gets normally
+// printed by runner to the progress indicator.
+func (t *Test) StatusGlyph() []byte {
+	if t.Failed() {
+		return []byte{'!'}
+	} else if t.Skipped() {
+		return []byte{'s'}
+	} else {
+		return []byte{'.'}
+	}
+}
+
 // A TestSuite represents a single grill test file.
 type TestSuite struct {
 	Name  string
@@ -99,7 +120,7 @@ func (suite TestSuite) WriteReport(w io.Writer) error {
 	if _, err := w.Write([]byte{'\n'}); err != nil {
 		return err
 	}
-	tests, failed := 0, 0
+	tests, failed, skipped := 0, 0, 0
 	for _, t := range suite.Tests {
 		if t.Failed() {
 			diff := t.diff.ToString(suite.Name)
@@ -107,6 +128,8 @@ func (suite TestSuite) WriteReport(w io.Writer) error {
 				return fmt.Errorf("couldn't write %q: %s", suite.Name+".err", err)
 			}
 			failed++
+		} else if t.Skipped() {
+			skipped++
 		}
 		tests++
 	}
@@ -114,12 +137,8 @@ func (suite TestSuite) WriteReport(w io.Writer) error {
 	if tests == 1 {
 		plural = ""
 	}
-	_, err := fmt.Fprintf(w, "# Ran %d test%s, %d failed.\n", tests, plural, failed)
+	_, err := fmt.Fprintf(w, "# Ran %d test%s, %d skipped, %d failed.\n", tests, plural, skipped, failed)
 	return err
-}
-
-func (t *Test) Failed() bool {
-	return len(t.diff.changes) > 0
 }
 
 const (
