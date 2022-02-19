@@ -31,4 +31,4 @@ Check environment variables:
   env.t
 
   $ pwd
-  **/grilltests*/env.t (glob)
+  **/grilltests*/examples/env.t (glob)
