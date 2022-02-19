@@ -97,7 +97,7 @@ func Main(a []string, stdout, stderr io.Writer) int {
 	if *opts.keepTmpdir {
 		_, err := fmt.Fprintf(stderr, "# Kept temporary directory: %s\n", context.WorkDir)
 		if err != nil {
-			log.Println(err)
+			panic(err)
 		}
 	} else {
 		context.Cleanup()
