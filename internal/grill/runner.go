@@ -56,7 +56,6 @@ func DefaultTestContext(shell string, stdout, stderr io.Writer) (TestContext, er
 		fmt.Sprintf("CRAMTMP=%s", td),
 		fmt.Sprintf("TESTSHELL=%q", shell),
 	}
-	// TODO Handle --preserve-env flag
 	env = append(env, strings.Split(DefaultEnvironment, "\n")...)
 	env = append(env, os.Environ()...)
 	return TestContext{
@@ -100,19 +99,21 @@ func (t *Test) Run(ctx TestContext) error {
 		return err
 	}
 
-	basename := filepath.Base(t.Filepath)
-
 	// Create working directory for individual source file
-	cmd.Dir = filepath.Join(ctx.WorkDir, basename)
-	if err := os.Mkdir(cmd.Dir, 0700); err != nil && !os.IsExist(err) {
+	cmd.Dir = filepath.Join(ctx.WorkDir, strings.TrimPrefix(t.Filepath, "/"))
+	if err := os.MkdirAll(cmd.Dir, 0700); err != nil && !os.IsExist(err) {
 		return err
 	}
 
 	cmd.Env = append(ctx.Environ, []string{
 		// TODO escape spaces in paths?
-		fmt.Sprintf("TESTFILE=%s", basename),
+		fmt.Sprintf("TESTFILE=%s", filepath.Base(t.Filepath)),
 		fmt.Sprintf("TESTDIR=%s", testdir),
 	}...)
+
+	// TODO copy test source over to working dir like cram does? How does
+	// that work if grill splits each .t file into multiple test cases?
+	// Maybe xyz.t.0, xyz.t.1, etc..?
 
 	if err = cmd.Start(); err != nil {
 		return fmt.Errorf("couldn't run command: %s", err)
