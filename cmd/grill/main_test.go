@@ -65,7 +65,7 @@ func TestGrillFail(t *testing.T) {
 		t.Errorf("bad stdout: got %q, want %q", got, want)
 	}
 	stderr := string(ctx.Stderr.Bytes())
-	if !strings.HasSuffix(stderr, "@@ -1,2 +1,2 @@\n-  foobaz\n+  foobar\n# Ran 1 test, 1 failed.\n") {
+	if !strings.HasSuffix(stderr, "@@ -1,2 +1,2 @@\n-  foobaz\n+  foobar\n# Ran 1 test, 0 skipped, 1 failed.\n") {
 		t.Errorf("bad Stderr: %q", stderr)
 	}
 }
@@ -85,7 +85,7 @@ func TestGrillPass(t *testing.T) {
 	}
 
 	got := string(ctx.Stderr.Bytes())
-	want := "\n# Ran 1 test, 0 failed.\n"
+	want := "\n# Ran 1 test, 0 skipped, 0 failed.\n"
 	if got != want {
 		t.Errorf("bad stderr: got %q, want %q", got, want)
 	}

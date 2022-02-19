@@ -18,12 +18,12 @@ Check environment variables:
   **/examples (glob)
   $ ls "$TESTDIR"
   bare.t
+  empty.t
   env.t
   missingeol.t
   test.t
 
 # TODO re-enable when files are added back
-# empty.t
 # fail.t
 # skip.t
 

@@ -2,7 +2,6 @@ package grill
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -79,7 +78,11 @@ func (t TestContext) Cleanup() error {
 func (t *Test) Run(ctx TestContext) error {
 	buf := new(bytes.Buffer)
 	if len(t.command) < 1 {
-		return errors.New("empty command")
+		// No command, will be considered skipped
+		if _, err := ctx.Stdout.Write(t.StatusGlyph()); err != nil {
+			log.Println(err)
+		}
+		return nil
 	}
 
 	var cdr []string
@@ -139,14 +142,8 @@ func (t *Test) Run(ctx TestContext) error {
 
 	t.diff = NewDiff([]byte(t.ExpectedResults()), []byte(t.ObservedResults()))
 
-	if t.Failed() {
-		if _, err := ctx.Stdout.Write([]byte{'!'}); err != nil {
-			log.Println(err)
-		}
-	} else {
-		if _, err := ctx.Stdout.Write([]byte{'.'}); err != nil {
-			log.Println(err)
-		}
+	if _, err := ctx.Stdout.Write(t.StatusGlyph()); err != nil {
+		log.Println(err)
 	}
 
 	return err
