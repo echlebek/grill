@@ -23,14 +23,14 @@ var opts = struct {
 	indent      *int
 }{
 	version:     flags.Bool("version", false, "show version information and exit"),
-	quiet:       flags.Bool("quiet", false, "don't print diffs (unsupported)"),
+	quiet:       flags.Bool("quiet", false, "don't print diffs"),
 	verbose:     flags.Bool("verbose", false, "show filenames and test status (unsupported)"),
 	interactive: flags.Bool("interactive", false, "interactively merge changed test output (unsupported)"),
 	debug:       flags.Bool("debug", false, "write script output directly to the terminal (unsupported)"),
 	yes:         flags.Bool("yes", false, "answer yes to all questions (unsupported)"),
 	no:          flags.Bool("no", false, "answer no to all questions (unsupported)"),
-	preserveEnv: flags.Bool("preserve-env", false, "don't reset common environment variables (unsupported)"),
-	keepTmpdir:  flags.Bool("keep-tmpdir", false, "keep temporary directories (unsupported)"),
+	preserveEnv: flags.Bool("preserve-env", false, "don't reset common environment variables"),
+	keepTmpdir:  flags.Bool("keep-tmpdir", false, "keep temporary directories"),
 	shell:       flags.String("shell", "/bin/sh", "shell to use for running tests (unsupported)"),
 	shellOpts:   flags.String("shell-opts", "", "arguments to invoke shell with (unsupported)"),
 	xunitFile:   flags.String("xunit-file", "", "path to write xUnit XML output (unsupported)"),

@@ -34,8 +34,6 @@ func readTestSuite(path string) (ts *grill.TestSuite, err error) {
 
 	for err == nil {
 		err = r.Read(&t)
-
-		t.Filepath = path
 		tests = append(tests, t)
 	}
 	if err != io.EOF && err != nil {
@@ -68,6 +66,8 @@ func Main(a []string, stdout, stderr io.Writer) int {
 
 	rc := 0
 
+	var suites []*grill.TestSuite
+
 	for _, a := range args {
 		suite, err := readTestSuite(a)
 		if err != nil {
@@ -76,22 +76,24 @@ func Main(a []string, stdout, stderr io.Writer) int {
 			continue
 		}
 
-		for i := range suite.Tests {
-			err := suite.Tests[i].Run(context)
-			if err != nil {
-				rc = 1
-				log.Println(err)
-			}
+		suites = append(suites, suite)
+
+		if err := suite.Run(context); err != nil {
+			rc = 1
+			log.Println(err)
+			continue
 		}
+
 		if suite.Failed() {
 			rc = 1
 			if err := suite.WriteErr(); err != nil {
 				log.Println(err)
 			}
 		}
-		if err := suite.WriteReport(stderr); err != nil {
-			log.Println(err)
-		}
+	}
+
+	if err := grill.WriteReport(stderr, suites, *opts.quiet); err != nil {
+		log.Println(err)
 	}
 
 	if *opts.keepTmpdir {

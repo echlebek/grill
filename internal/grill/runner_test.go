@@ -43,12 +43,7 @@ func TestRunTest(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if got, want := stdout.String(), "."; got != want {
-		t.Errorf("bad test status output: got %q, want %q", got, want)
-	}
-
 	if got, want := test.ExpectedResults(), test.ObservedResults(); got != want {
 		t.Errorf("bad test output: got %q, want %q", got, want)
 	}
-
 }

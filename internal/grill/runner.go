@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -72,15 +71,13 @@ func (t TestContext) Cleanup() error {
 	return os.RemoveAll(t.WorkDir)
 }
 
-// Run runs t within the TestContext. An error is returned if there is an
-// error in executing the test.
+// Run runs the test within the TestContext. An non-nil error
+// indicates a failure to run the test. Use Test.Failed() to find
+// out if the test ran but did not produce the expected output.
 func (t *Test) Run(ctx TestContext) error {
 	buf := new(bytes.Buffer)
 	if len(t.command) < 1 {
 		// No command, will be considered skipped
-		if _, err := ctx.Stdout.Write(t.StatusGlyph()); err != nil {
-			log.Println(err)
-		}
 		return nil
 	}
 
@@ -92,32 +89,15 @@ func (t *Test) Run(ctx TestContext) error {
 	cmd.Stdout = buf
 	cmd.Stderr = buf
 	cmd.Stdin = t.Command()
+	cmd.Env = ctx.Environ
+	cmd.Dir = ctx.WorkDir
 
-	// Add test specific variables
-	testdir, err := filepath.Abs(filepath.Dir(t.Filepath))
-	if err != nil {
-		return err
-	}
-
-	// Create working directory for individual source file
-	cmd.Dir = filepath.Join(ctx.WorkDir, strings.TrimPrefix(t.Filepath, "/"))
-	if err := os.MkdirAll(cmd.Dir, 0700); err != nil && !os.IsExist(err) {
-		return err
-	}
-
-	cmd.Env = append(ctx.Environ, []string{
-		// TODO escape spaces in paths?
-		fmt.Sprintf("TESTFILE=%s", filepath.Base(t.Filepath)),
-		fmt.Sprintf("TESTDIR=%s", testdir),
-	}...)
-
-	// TODO copy test source over to working dir like cram does? How does
-	// that work if grill splits each .t file into multiple test cases?
-	// Maybe xyz.t.0, xyz.t.1, etc..?
+	var err error
 
 	if err = cmd.Start(); err != nil {
 		return fmt.Errorf("couldn't run command: %s", err)
 	}
+
 	if err = cmd.Wait(); err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			buf.Write(exitErr.Stderr)
@@ -142,10 +122,43 @@ func (t *Test) Run(ctx TestContext) error {
 	}
 
 	t.diff = NewDiff([]byte(t.ExpectedResults()), []byte(t.ObservedResults()))
+	return err
+}
 
-	if _, err := ctx.Stdout.Write(t.StatusGlyph()); err != nil {
-		log.Println(err)
+// Run runs the entire suite within the TestContext. An non-nil error
+// indicates a failure to run the test. Use TestSuite.Failed() to find
+// out if the test ran but did not produce the expected output.
+//
+// At the end, Run prints suite status glyph to ctx.Stdout.
+func (suite *TestSuite) Run(ctx TestContext) error {
+	// Add test specific variables
+	testdir, err := filepath.Abs(filepath.Dir(suite.Name))
+	if err != nil {
+		return err
 	}
 
-	return err
+	// Update workdir for each individual test;
+	// OK to set fields since ctx is passed by value.
+	ctx.WorkDir = filepath.Join(ctx.WorkDir, strings.TrimPrefix(suite.Name, "/"))
+	if err := os.MkdirAll(ctx.WorkDir, 0700); err != nil {
+		return err
+	}
+
+	ctx.Environ = append(ctx.Environ, []string{
+		// TODO escape spaces in paths?
+		fmt.Sprintf("TESTFILE=%s", filepath.Base(suite.Name)),
+		fmt.Sprintf("TESTDIR=%s", testdir),
+	}...)
+
+	for i := 0; i < len(suite.Tests); i++ {
+		if err := suite.Tests[i].Run(ctx); err != nil {
+			return err
+		}
+	}
+
+	if _, err := ctx.Stdout.Write(suite.StatusGlyph()); err != nil {
+		return err
+	}
+
+	return nil
 }
