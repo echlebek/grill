@@ -127,6 +127,14 @@ func (suite TestSuite) WriteErr() error {
 	return nil
 }
 
+// RemoveErr removes the matching .err file, if it exists.
+func (suite TestSuite) RemoveErr() error {
+	if err := os.Remove(suite.Name + ".err"); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	return nil
+}
+
 // WriteReport writes out a report on the overall grill run.
 //
 // Setting quiet to true will hide the suite diffs

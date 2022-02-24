@@ -58,7 +58,7 @@ func Main(a []string, stdout, stderr io.Writer) int {
 		return 2
 	}
 
-	context, err := grill.DefaultTestContext("bash", stdout, stderr)
+	context, err := grill.DefaultTestContext(*opts.shell, stdout, stderr)
 	if err != nil {
 		log.Println(err)
 		return 1
@@ -87,6 +87,10 @@ func Main(a []string, stdout, stderr io.Writer) int {
 		if suite.Failed() {
 			rc = 1
 			if err := suite.WriteErr(); err != nil {
+				log.Println(err)
+			}
+		} else {
+			if err := suite.RemoveErr(); err != nil {
 				log.Println(err)
 			}
 		}
