@@ -3,19 +3,16 @@ package grill
 import (
 	"bufio"
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"os"
 )
 
-var ErrNoCommand = errors.New("couldn't read any commands")
-
 // Test is a single grill test. It is comprised of documentation, commands, and
 // expected test results.
 type Test struct {
 	doc        [][]byte
-	command    []byte
+	command    [][]byte
 	expResults [][]byte
 	obsResults [][]byte
 	diff       DiffData
@@ -26,7 +23,7 @@ func (t Test) Doc() string {
 }
 
 func (t Test) Command() io.Reader {
-	return bytes.NewReader(t.command)
+	return bytes.NewReader(bytes.Join(t.command, []byte("\n")))
 }
 
 func byteSlicesToString(slice [][]byte) string {
@@ -110,8 +107,16 @@ func (suite TestSuite) WriteErr() error {
 				return fmt.Errorf("couldn't write %s: %s", tErr, err)
 			}
 		}
-		if _, err := fmt.Fprintf(f, "  $ %s\n", string(t.command)); err != nil {
-			return fmt.Errorf("couldn't write %s: %s", tErr, err)
+		for i, line := range t.command {
+			var format string
+			if i == 0 {
+				format = "  $ %s\n"
+			} else {
+				format = "  > %s\n"
+			}
+			if _, err := fmt.Fprintf(f, format, line); err != nil {
+				return fmt.Errorf("couldn't write %s: %s", tErr, err)
+			}
 		}
 		for _, e := range t.obsResults {
 			if _, err := fmt.Fprintf(f, "  %s\n", e); err != nil {
@@ -252,31 +257,16 @@ func (t *testReader) Read(test *Test) error {
 				if len(line) < 5 {
 					return synErr(i, "line too short")
 				}
-				if bytes.HasSuffix(line, []byte("\\")) {
-					t.state = stateCmdCont
-				} else {
-					t.state = stateExp
-				}
-				test.command = append(test.command, bytes.Trim(line[4:], "\n")...)
+				// Assume next line is continuation; next state will
+				// unread and go straight to exp state if necessary.
+				t.state = stateCmdCont
+				test.command = append(test.command, line[4:])
 			case stateCmdCont:
 				if !bytes.HasPrefix(line, []byte("  > ")) {
-					return synErr(i, "truncated command")
-				}
-				if len(line) < 5 {
-					return synErr(i, "line too short")
-				}
-				trimmed := line[4:]
-				if bytes.HasSuffix(line, []byte("\\")) {
-					trimmed = trimmed[:len(trimmed)-1]
-				} else {
 					t.state = stateExp
+					continue
 				}
-				args := bytes.Split(trimmed, []byte(" "))
-				for _, a := range args {
-					if len(a) > 0 {
-						test.command = append(test.command, bytes.Trim(a, "\n")...)
-					}
-				}
+				test.command = append(test.command, line[4:])
 			case stateExp:
 				if bytes.HasPrefix(line, []byte("  $ ")) {
 					t.state = stateCmdStart
