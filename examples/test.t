@@ -7,10 +7,19 @@ Simple commands:
   baz
 
 Multi-line command:
+
   $ echo foo\
   > bar\
   > baz
   foobarbaz
+
+Multi-line command w/ here-document:
+
+  $ cat <<EOF
+  > Hello, \
+  > world
+  > EOF
+  Hello, world
 
 TODO Persistent bash variables
 # $ foo() {

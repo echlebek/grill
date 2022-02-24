@@ -12,7 +12,7 @@ func TestRunTest(t *testing.T) {
 		doc: [][]byte{
 			[]byte("This is a test"),
 		},
-		command: []byte("echo foobar"),
+		command: [][]byte{[]byte("echo foobar")},
 		expResults: [][]byte{
 			[]byte("foobar"),
 		},

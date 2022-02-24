@@ -23,22 +23,22 @@ func makeSpecs() []spec {
 	return []spec{
 		{
 			doc:     "Run grill examples:\n",
-			command: []byte("grill -q examples examples/fail.t"),
+			command: [][]byte{[]byte("grill -q examples examples/fail.t")},
 			results: ".s.!.s.\n# Ran 7 tests, 2 skipped, 1 failed.\n[1]",
 		},
 		{
-			command: []byte("md5 examples/fail.t examples/fail.t.err"),
+			command: [][]byte{[]byte("md5 examples/fail.t examples/fail.t.err")},
 			results: ".*\\b0f598c2b7b8ca5bcb8880e492ff6b452\\b.* (re)\n.*\\b7a23dfa85773c77648f619ad0f9df554\\b.* (re)",
 		},
 		{
-			command: []byte("rm examples/fail.t.err"),
+			command: [][]byte{[]byte("rm examples/fail.t.err")},
 		},
 	}
 }
 
 type spec struct {
 	doc     string
-	command []byte
+	command [][]byte
 	results string
 }
 
