@@ -14,7 +14,6 @@ var ErrNoCommand = errors.New("couldn't read any commands")
 // Test is a single grill test. It is comprised of documentation, commands, and
 // expected test results.
 type Test struct {
-	Filepath   string
 	doc        [][]byte
 	command    []byte
 	expResults [][]byte
@@ -59,12 +58,12 @@ func (t *Test) Skipped() bool {
 }
 
 // StatusGlyph returns a sequence of characters
-// that represents the test status and gets normally
+// that represents the suite overall status and gets normally
 // printed by runner to the progress indicator.
-func (t *Test) StatusGlyph() []byte {
-	if t.Failed() {
+func (suite TestSuite) StatusGlyph() []byte {
+	if suite.Failed() {
 		return []byte{'!'}
-	} else if t.Skipped() {
+	} else if suite.Skipped() {
 		return []byte{'s'}
 	} else {
 		return []byte{'.'}
@@ -86,6 +85,16 @@ func (suite TestSuite) Failed() bool {
 		}
 	}
 	return false
+}
+
+// Skipped returns true if all of the tests in the suite were skipped.
+func (suite TestSuite) Skipped() bool {
+	for _, t := range suite.Tests {
+		if !t.Skipped() {
+			return false
+		}
+	}
+	return true
 }
 
 // WriteErr writes test.t.err to the directory that test.t is in.
@@ -113,26 +122,33 @@ func (suite TestSuite) WriteErr() error {
 	return nil
 }
 
-// WriteReport writes out a report of the diff between the test's
-// ExpectedResults and ObservedResults, or a '.' if the testsuite
-// succeeded.
-func (suite TestSuite) WriteReport(w io.Writer) error {
+// WriteReport writes out a report on the overall grill run.
+//
+// Setting quiet to true will hide the suite diffs
+// and write out just the status summary.
+func WriteReport(w io.Writer, suites []*TestSuite, quiet bool) error {
 	if _, err := w.Write([]byte{'\n'}); err != nil {
 		return err
 	}
 	tests, failed, skipped := 0, 0, 0
-	for _, t := range suite.Tests {
-		if t.Failed() {
-			diff := t.diff.ToString(suite.Name)
-			if _, err := w.Write(diff); err != nil {
-				return fmt.Errorf("couldn't write %q: %s", suite.Name+".err", err)
-			}
+
+	for _, s := range suites {
+		if s.Failed() {
 			failed++
-		} else if t.Skipped() {
+			if !quiet {
+				for _, t := range s.Tests {
+					diff := t.diff.ToString(s.Name)
+					if _, err := w.Write(diff); err != nil {
+						return fmt.Errorf("couldn't write %q: %s", s.Name+".err", err)
+					}
+				}
+			}
+		} else if s.Skipped() {
 			skipped++
 		}
 		tests++
 	}
+
 	plural := "s"
 	if tests == 1 {
 		plural = ""

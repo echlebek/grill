@@ -8,10 +8,8 @@ same name but in different branches.
   $ grill --keep-tmpdir sub1/abc.t sub1/sub2/abc.t >log 2>&1
 
   $ cat log
-  .
-  # Ran 1 test, 0 skipped, 0 failed.
-  .
-  # Ran 1 test, 0 skipped, 0 failed.
+  ..
+  # Ran 2 tests, 0 skipped, 0 failed.
   # Kept temporary directory: **/grilltests*/** (glob)
 
   $ find `cat log | grep -oP "(?<=directory: ).*"` -name '*.t'
