@@ -31,7 +31,7 @@ var opts = struct {
 	no:          flags.Bool("no", false, "answer no to all questions (unsupported)"),
 	preserveEnv: flags.Bool("preserve-env", false, "don't reset common environment variables"),
 	keepTmpdir:  flags.Bool("keep-tmpdir", false, "keep temporary directories"),
-	shell:       flags.String("shell", "/bin/sh", "shell to use for running tests (unsupported)"),
+	shell:       flags.String("shell", "/bin/sh", "shell to use for running tests"),
 	shellOpts:   flags.String("shell-opts", "", "arguments to invoke shell with (unsupported)"),
 	xunitFile:   flags.String("xunit-file", "", "path to write xUnit XML output (unsupported)"),
 	indent:      flags.Int("indent", 2, "number of spaces to use for indentation (unsupported)"),
