@@ -216,7 +216,7 @@ func (suite *TestSuite) Run(ctx TestContext) error {
 		}
 	}
 	if err := scanner.Err(); err != nil {
-		fmt.Fprintln(os.Stderr, "reading standard input:", err)
+		return fmt.Errorf("could not read test output: %s", err)
 	}
 
 	if _, err := ctx.Stdout.Write(suite.StatusGlyph()); err != nil {
