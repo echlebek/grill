@@ -6,8 +6,8 @@ import (
 	"regexp"
 	"strconv"
 
-	"github.com/mb0/diff"
-	"github.com/mb0/glob"
+	"github.com/echlebek/diff"
+	"github.com/echlebek/glob"
 )
 
 // TODO so far unused
