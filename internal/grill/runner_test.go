@@ -7,14 +7,18 @@ import (
 	"testing"
 )
 
-func TestRunTest(t *testing.T) {
-	test := &Test{
-		doc: [][]byte{
-			[]byte("This is a test"),
-		},
-		command: [][]byte{[]byte("echo foobar")},
-		expResults: [][]byte{
-			[]byte("foobar"),
+func TestRunSuite(t *testing.T) {
+	suite := &TestSuite{
+		Tests: []Test{
+			{
+				doc: [][]byte{
+					[]byte("This is a test"),
+				},
+				command: [][]byte{[]byte("echo foobar")},
+				expResults: [][]byte{
+					[]byte("foobar"),
+				},
+			},
 		},
 	}
 
@@ -39,9 +43,11 @@ func TestRunTest(t *testing.T) {
 		Environ: os.Environ(),
 	}
 
-	if err := test.Run(ctx); err != nil {
+	if err := suite.Run(ctx); err != nil {
 		t.Fatal(err)
 	}
+
+	test := &suite.Tests[0]
 
 	if got, want := test.ExpectedResults(), test.ObservedResults(); got != want {
 		t.Errorf("bad test output: got %q, want %q", got, want)

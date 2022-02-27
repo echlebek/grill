@@ -21,12 +21,13 @@ Multi-line command w/ here-document:
   > EOF
   Hello, world
 
-TODO Persistent bash variables
-# $ foo() {
-# >     echo bar
-# > }
-# $ foo
-# bar
+Shell state persists between commands:
+
+  $ foo() {
+  >     echo bar
+  > }
+  $ foo
+  bar
 
 Regular expression:
 

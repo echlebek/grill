@@ -1,6 +1,7 @@
 package grill
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"io"
@@ -11,6 +12,9 @@ import (
 	"strings"
 	"syscall"
 )
+
+// Token used to separate output of individual commands in a suite.
+const testBreak = "__GRILL__"
 
 // TestContext specifies an execution environment for running a test.
 type TestContext struct {
@@ -150,10 +154,69 @@ func (suite *TestSuite) Run(ctx TestContext) error {
 		fmt.Sprintf("TESTDIR=%s", testdir),
 	}...)
 
-	for i := 0; i < len(suite.Tests); i++ {
-		if err := suite.Tests[i].Run(ctx); err != nil {
-			return err
+	script := new(bytes.Buffer)
+	for _, t := range suite.Tests {
+		for _, line := range t.command {
+			script.Write(line)
+			script.WriteByte('\n')
 		}
+		// TODO this is currently harcoded for bash, sh, etc
+		script.WriteString(fmt.Sprintf("echo %s$?\n", testBreak))
+	}
+
+	out := new(bytes.Buffer)
+
+	var shellOpts []string
+	if len(ctx.Shell) > 1 {
+		shellOpts = ctx.Shell[1:]
+	}
+	cmd := exec.Command(ctx.Shell[0], shellOpts...)
+	cmd.Stdin = script
+	cmd.Stdout = out
+	cmd.Stderr = out
+	cmd.Env = ctx.Environ
+	cmd.Dir = ctx.WorkDir
+
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("couldn't run command: %s", err)
+	}
+
+	if err := cmd.Wait(); err != nil {
+		// Last command in each script is the separator that echos return code
+		// and so the script should always exit with zero. If it doesn't, then
+		// it likely exited prematurely (e.g. developer had set -e in it)
+		return fmt.Errorf("test exited with unexpected error: %s", err)
+	}
+
+	i := 0
+	scanner := bufio.NewScanner(out)
+	for scanner.Scan() {
+		t := &suite.Tests[i]
+		line := scanner.Text()
+		tokens := strings.Split(line, testBreak)
+
+		switch len(tokens) {
+		case 1:
+			// Regular output line
+			t.obsResults = append(t.obsResults, []byte(tokens[0]))
+		case 2:
+			// Test break found
+			if len(tokens[0]) > 0 {
+				// Test break line contains the last output line without eol
+				t.obsResults = append(t.obsResults, []byte(tokens[0]+" (no-eol)"))
+			}
+			if exitCode := tokens[1]; exitCode != "0" {
+				t.obsResults = append(t.obsResults, []byte(fmt.Sprintf("[%s]", exitCode)))
+			}
+			t.diff = NewDiff([]byte(t.ExpectedResults()), []byte(t.ObservedResults()))
+			i++
+
+		default:
+			return fmt.Errorf("more than one test break found: %s", line)
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		fmt.Fprintln(os.Stderr, "reading standard input:", err)
 	}
 
 	if _, err := ctx.Stdout.Write(suite.StatusGlyph()); err != nil {
