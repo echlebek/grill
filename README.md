@@ -7,12 +7,12 @@ way as cram in most, but not all, cases.
 DONE:
   * A command line tool (grill) that can execute tests in grill format.
   * Support for regex and glob line matching.
+  * Shell variables are persisted between commands.
 
 TODO:
   * Support cram's environment variables.
   * Gradually add support for cram's command-line flags.
   * Flesh out the tests for the test.t reader.
-  * Persist new shell variables between commands.
 
 WONTFIX:
   * PCRE is not supported. Instead, Go's regexp language is.
