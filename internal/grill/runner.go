@@ -6,15 +6,13 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"syscall"
 )
-
-// Token used to separate output of individual commands in a suite.
-const testBreak = "__GRILL__"
 
 // TestContext specifies an execution environment for running a test.
 type TestContext struct {
@@ -154,6 +152,8 @@ func (suite *TestSuite) Run(ctx TestContext) error {
 		fmt.Sprintf("TESTDIR=%s", testdir),
 	}...)
 
+	testBreak := makeTestBreak()
+
 	script := new(bytes.Buffer)
 	for _, t := range suite.Tests {
 		for _, line := range t.command {
@@ -224,4 +224,17 @@ func (suite *TestSuite) Run(ctx TestContext) error {
 	}
 
 	return nil
+}
+
+const digits = "0123456789"
+
+// makeTestBreak generates a randomized line used to separate output of
+// individual commands in a suite. Randomized element is added to reduce
+// the change of the string occurring in the test output itself.
+func makeTestBreak() string {
+	b := make([]byte, 8)
+	for i := range b {
+		b[i] = digits[rand.Intn(len(digits))]
+	}
+	return "GRILL" + string(b) + ":"
 }
