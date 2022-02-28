@@ -49,7 +49,7 @@ func TestRunSuite(t *testing.T) {
 
 	test := &suite.Tests[0]
 
-	if got, want := test.ExpectedResults(), test.ObservedResults(); got != want {
+	if got, want := test.ObservedResults(), test.ExpectedResults(); got != want {
 		t.Errorf("bad test output: got %q, want %q", got, want)
 	}
 }
