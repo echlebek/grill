@@ -3,6 +3,7 @@ package grill
 import (
 	"bufio"
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -226,15 +227,12 @@ func (suite *TestSuite) Run(ctx TestContext) error {
 	return nil
 }
 
-const digits = "0123456789"
-
-// makeTestBreak generates a randomized line used to separate output of
-// individual commands in a suite. Randomized element is added to reduce
-// the change of the string occurring in the test output itself.
+// makeTestBreak generates a line used to separate output of
+// individual commands in a suite. Randomized element is used
+// to create a string which can be reasonably expected not to
+// occur in the test output itself.
 func makeTestBreak() string {
-	b := make([]byte, 8)
-	for i := range b {
-		b[i] = digits[rand.Intn(len(digits))]
-	}
-	return "GRILL" + string(b) + ":"
+	b := make([]byte, 4)
+	rand.Read(b)
+	return "GRILL" + hex.EncodeToString(b) + ":"
 }
