@@ -4,19 +4,12 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"math/rand"
 	"os"
-	"time"
 
 	"github.com/echlebek/grill/internal/grill"
 )
 
 const grillVersion = "dev"
-
-func init() {
-	// Seed rng for test separator string generator.
-	rand.Seed(time.Now().UnixNano())
-}
 
 func main() {
 	os.Exit(Main(os.Args[1:], os.Stdout, os.Stderr))

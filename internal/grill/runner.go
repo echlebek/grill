@@ -1,13 +1,10 @@
 package grill
 
 import (
-	"bufio"
 	"bytes"
-	"encoding/hex"
 	"fmt"
 	"io"
 	"io/ioutil"
-	"math/rand"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -147,25 +144,37 @@ func (suite *TestSuite) Run(ctx TestContext) error {
 		return err
 	}
 
+	// Temporary directory and paths for output / status
+	// Will contain:
+	//   * status - common status file, one byte per test exit status code; no newline
+	//   * out.0, out.1, ... - output for each individual test command in a suite.
+	cmdDir := ctx.WorkDir + ".cmd"
+	if err := os.MkdirAll(cmdDir, 0700); err != nil {
+		return err
+	}
+
+	outBasePath := filepath.Join(cmdDir, "out")
+	statusPath := filepath.Join(cmdDir, "status")
+	statusCmd := fmt.Sprintf("echo -n $? >>%s\n", statusPath)
+
 	ctx.Environ = append(ctx.Environ, []string{
 		// TODO escape spaces in paths?
 		fmt.Sprintf("TESTFILE=%s", filepath.Base(suite.Name)),
 		fmt.Sprintf("TESTDIR=%s", testdir),
 	}...)
 
-	testBreak := makeTestBreak()
-
+	// TODO use <testname>.cmd/in temporary file instead for easier debugging?
 	script := new(bytes.Buffer)
-	for _, t := range suite.Tests {
+	for i, t := range suite.Tests {
+		// Redirect pipes to dedicated output file for each test command.
+		// Write command status to a single status file.
+		script.WriteString(fmt.Sprintf("exec >%s.%d 2>&1\n", outBasePath, i))
 		for _, line := range t.command {
 			script.Write(line)
 			script.WriteByte('\n')
 		}
-		// TODO this is currently harcoded for bash, sh, etc
-		script.WriteString(fmt.Sprintf("echo %s$?\n", testBreak))
+		script.WriteString(statusCmd)
 	}
-
-	out := new(bytes.Buffer)
 
 	var shellOpts []string
 	if len(ctx.Shell) > 1 {
@@ -173,8 +182,6 @@ func (suite *TestSuite) Run(ctx TestContext) error {
 	}
 	cmd := exec.Command(ctx.Shell[0], shellOpts...)
 	cmd.Stdin = script
-	cmd.Stdout = out
-	cmd.Stderr = out
 	cmd.Env = ctx.Environ
 	cmd.Dir = ctx.WorkDir
 
@@ -189,35 +196,40 @@ func (suite *TestSuite) Run(ctx TestContext) error {
 		return fmt.Errorf("test exited with unexpected error: %s", err)
 	}
 
-	i := 0
-	scanner := bufio.NewScanner(out)
-	for scanner.Scan() {
-		t := &suite.Tests[i]
-		line := scanner.Text()
-		tokens := strings.Split(line, testBreak)
-
-		switch len(tokens) {
-		case 1:
-			// Regular output line
-			t.obsResults = append(t.obsResults, []byte(tokens[0]))
-		case 2:
-			// Test break found
-			if len(tokens[0]) > 0 {
-				// Test break line contains the last output line without eol
-				t.obsResults = append(t.obsResults, []byte(tokens[0]+" (no-eol)"))
-			}
-			if exitCode := tokens[1]; exitCode != "0" {
-				t.obsResults = append(t.obsResults, []byte(fmt.Sprintf("[%s]", exitCode)))
-			}
-			t.diff = NewDiff([]byte(t.ExpectedResults()), []byte(t.ObservedResults()))
-			i++
-
-		default:
-			return fmt.Errorf("more than one test break found: %s", line)
-		}
+	// Read the list of exit status codes
+	status, err := os.ReadFile(statusPath)
+	if err != nil {
+		return fmt.Errorf("could not read test status: %s", err)
 	}
-	if err := scanner.Err(); err != nil {
-		return fmt.Errorf("could not read test output: %s", err)
+
+	if len(status) != len(suite.Tests) {
+		return fmt.Errorf("no. of status codes does not match no. of tests (%d != %d)",
+			len(status), len(suite.Tests))
+	}
+
+	for i, _ := range suite.Tests {
+		t := &suite.Tests[i]
+
+		// Test output
+		b, err := os.ReadFile(fmt.Sprintf("%s.%d", outBasePath, i))
+		if err != nil {
+			return fmt.Errorf("could not read test output: %s", err)
+		}
+
+		lines := bytes.Split(b, []byte{'\n'})
+		if j := len(lines) - 1; len(lines[j]) != 0 {
+			lines[j] = append(lines[j], []byte(" (no-eol)")...)
+		} else {
+			lines = lines[:j]
+		}
+
+		// Test exit status
+		if s := status[i]; s != '0' {
+			lines = append(lines, []byte{'[', s, ']'})
+		}
+
+		t.obsResults = lines
+		t.diff = NewDiff([]byte(t.ExpectedResults()), []byte(t.ObservedResults()))
 	}
 
 	if _, err := ctx.Stdout.Write(suite.StatusGlyph()); err != nil {
@@ -225,14 +237,4 @@ func (suite *TestSuite) Run(ctx TestContext) error {
 	}
 
 	return nil
-}
-
-// makeTestBreak generates a line used to separate output of
-// individual commands in a suite. Randomized element is used
-// to create a string which can be reasonably expected not to
-// occur in the test output itself.
-func makeTestBreak() string {
-	b := make([]byte, 4)
-	rand.Read(b)
-	return "GRILL" + hex.EncodeToString(b) + ":"
 }
