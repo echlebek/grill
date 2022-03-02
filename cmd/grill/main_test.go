@@ -61,12 +61,13 @@ func TestGrillFail(t *testing.T) {
 	if got, want := Main([]string{ctx.Test.Name()}, ctx.Stdout, ctx.Stderr), 1; got != want {
 		t.Errorf("bad return code: got %d, want %d", got, want)
 	}
-	if want, got := "!", string(ctx.Stdout.Bytes()); got != want {
-		t.Errorf("bad stdout: got %q, want %q", got, want)
+
+	stdout := ctx.Stdout.String()
+	if !strings.HasPrefix(stdout, "!\n") {
+		t.Errorf("bad stdout: %q", stdout)
 	}
-	stderr := string(ctx.Stderr.Bytes())
-	if !strings.HasSuffix(stderr, "@@ -1,2 +1,2 @@\n-  foobaz\n+  foobar\n# Ran 1 test, 0 skipped, 1 failed.\n") {
-		t.Errorf("bad Stderr: %q", stderr)
+	if !strings.HasSuffix(stdout, "@@ -4,1 +4,1 @@\n-  foobaz\n+  foobar\n# Ran 1 test, 0 skipped, 1 failed.\n") {
+		t.Errorf("bad stdout: %q", stdout)
 	}
 }
 
@@ -80,14 +81,8 @@ func TestGrillPass(t *testing.T) {
 		t.Errorf("bad return code: got %d, want %d", got, want)
 	}
 
-	if want, got := ".", string(ctx.Stdout.Bytes()); got != want {
+	if want, got := ".\n# Ran 1 test, 0 skipped, 0 failed.\n", ctx.Stdout.String(); got != want {
 		t.Errorf("bad stdout: got %q, want %q", got, want)
-	}
-
-	got := string(ctx.Stderr.Bytes())
-	want := "\n# Ran 1 test, 0 skipped, 0 failed.\n"
-	if got != want {
-		t.Errorf("bad stderr: got %q, want %q", got, want)
 	}
 }
 
@@ -99,7 +94,7 @@ func TestGrillVersion(t *testing.T) {
 	if got, want := Main([]string{"-version", "foo", "bar", "baz"}, ctx.Stdout, ctx.Stderr), 0; got != want {
 		t.Errorf("bad return code: got %d, want %d", got, want)
 	}
-	got := string(ctx.Stderr.Bytes())
+	got := ctx.Stderr.String()
 	want := grillVersion + "\n"
 	if got != want {
 		t.Errorf("bad version: got %q, want %q", got, want)

@@ -96,12 +96,12 @@ func Main(a []string, stdout, stderr io.Writer) int {
 		}
 	}
 
-	if err := grill.WriteReport(stderr, suites, *opts.quiet); err != nil {
+	if err := grill.WriteReport(stdout, suites, *opts.quiet); err != nil {
 		log.Println(err)
 	}
 
 	if *opts.keepTmpdir {
-		_, err := fmt.Fprintf(stderr, "# Kept temporary directory: %s\n", context.WorkDir)
+		_, err := fmt.Fprintf(stdout, "# Kept temporary directory: %s\n", context.WorkDir)
 		if err != nil {
 			panic(err)
 		}
