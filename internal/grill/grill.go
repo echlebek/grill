@@ -16,35 +16,7 @@ type Test struct {
 	command    [][]byte
 	expResults [][]byte
 	obsResults [][]byte
-	diff       DiffData
-}
-
-func (t Test) Doc() string {
-	return byteSlicesToString(t.doc)
-}
-
-func (t Test) Command() io.Reader {
-	return bytes.NewReader(bytes.Join(t.command, []byte("\n")))
-}
-
-func byteSlicesToString(slice [][]byte) string {
-	if len(slice) == 0 {
-		return ""
-	}
-	result := make([]byte, 0)
-	for _, b := range slice {
-		result = append(result, b...)
-		result = append(result, '\n')
-	}
-	return string(result[:len(result)-1])
-}
-
-func (t Test) ExpectedResults() string {
-	return byteSlicesToString(t.expResults)
-}
-
-func (t Test) ObservedResults() string {
-	return byteSlicesToString(t.obsResults)
+	diff       Diff
 }
 
 func (t *Test) Failed() bool {
@@ -150,7 +122,7 @@ func WriteReport(w io.Writer, suites []*TestSuite, quiet bool) error {
 		if s.Failed() {
 			failed++
 			if !quiet {
-				if err := WriteDiff(w, s); err != nil {
+				if err := s.WriteDiff(w); err != nil {
 					return fmt.Errorf("couldn't write %q: %s", s.Name+".err", err)
 				}
 			}
@@ -304,4 +276,8 @@ func escape(s []byte) string {
 		b += " (esc)"
 	}
 	return b
+}
+
+func byteSlicesToString(slice [][]byte) string {
+	return string(bytes.Join(slice, []byte("\n")))
 }

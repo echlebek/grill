@@ -131,9 +131,12 @@ except this one.
 }
 
 func TestDiff(t *testing.T) {
+	splitLines := func(b string) [][]byte {
+		return bytes.Split([]byte(b), []byte("\n"))
+	}
 	for i, test := range tests {
 		var b bytes.Buffer
-		d := NewDiff([]byte(test.Old), []byte(test.New))
+		d := NewDiff(splitLines(test.Old), splitLines(test.New))
 		_ = d.Write(&b, 1, 1)
 		if got, want := b.String(), test.ExpectedDiff; got != want {
 			fmt.Println(got)
