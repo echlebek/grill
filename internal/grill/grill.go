@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 )
 
 // Test is a single grill test. It is comprised of documentation, commands, and
@@ -118,8 +119,8 @@ func (suite TestSuite) WriteErr() error {
 				return fmt.Errorf("couldn't write %s: %s", tErr, err)
 			}
 		}
-		for _, e := range t.obsResults {
-			if _, err := fmt.Fprintf(f, "  %s\n", e); err != nil {
+		for _, line := range t.obsResults {
+			if _, err := fmt.Fprintf(f, "  %s\n", escape(line)); err != nil {
 				return fmt.Errorf("couldn't write %s: %s", tErr, err)
 			}
 		}
@@ -149,11 +150,8 @@ func WriteReport(w io.Writer, suites []*TestSuite, quiet bool) error {
 		if s.Failed() {
 			failed++
 			if !quiet {
-				for _, t := range s.Tests {
-					diff := t.diff.ToString(s.Name)
-					if _, err := w.Write(diff); err != nil {
-						return fmt.Errorf("couldn't write %q: %s", s.Name+".err", err)
-					}
+				if err := WriteDiff(w, s); err != nil {
+					return fmt.Errorf("couldn't write %q: %s", s.Name+".err", err)
 				}
 			}
 		} else if s.Skipped() {
@@ -293,4 +291,17 @@ func (t *testReader) Read(test *Test) error {
 		}
 	}
 	return io.EOF
+}
+
+// Escape unprintable characters in a string, if there are any.
+//
+// If any character was escaped, append (esc) keyword to the end of the output string.
+func escape(s []byte) string {
+	a := string(s)
+	b := strconv.Quote(a)
+	b = b[1 : len(b)-1]
+	if a != b {
+		b += " (esc)"
+	}
+	return b
 }
