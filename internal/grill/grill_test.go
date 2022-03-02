@@ -2,9 +2,7 @@ package grill
 
 import (
 	"bytes"
-	"fmt"
 	"io"
-	"reflect"
 	"testing"
 )
 
@@ -23,22 +21,22 @@ func makeSpecs() []spec {
 	return []spec{
 		{
 			doc:     "Run grill examples:\n",
-			command: [][]byte{[]byte("grill -q examples examples/fail.t")},
+			command: "grill -q examples examples/fail.t",
 			results: ".s.!.s.\n# Ran 7 tests, 2 skipped, 1 failed.\n[1]",
 		},
 		{
-			command: [][]byte{[]byte("md5 examples/fail.t examples/fail.t.err")},
+			command: "md5 examples/fail.t examples/fail.t.err",
 			results: ".*\\b0f598c2b7b8ca5bcb8880e492ff6b452\\b.* (re)\n.*\\b7a23dfa85773c77648f619ad0f9df554\\b.* (re)",
 		},
 		{
-			command: [][]byte{[]byte("rm examples/fail.t.err")},
+			command: "rm examples/fail.t.err",
 		},
 	}
 }
 
 type spec struct {
 	doc     string
-	command [][]byte
+	command string
 	results string
 }
 
@@ -71,15 +69,17 @@ func TestReadTests(t *testing.T) {
 		t.Fatalf("wrong number of tests: got %d, want %d", len(tests), len(specs))
 	}
 
+	join := byteSlicesToString
+
 	for i, spec := range specs {
 		test := tests[i]
-		if got, want := test.Doc(), spec.doc; got != want {
+		if got, want := join(test.doc), spec.doc; got != want {
 			t.Errorf("test %d: bad doc: got %q, want %q", i, got, want)
 		}
-		if !reflect.DeepEqual(spec.command, test.command) {
-			t.Errorf("test %d: bad cmd: got %q, want %q", i, fmt.Sprint(test.Command()), spec.command)
+		if got, want := join(test.command), spec.command; got != want {
+			t.Errorf("test %d: bad cmd: got %q, want %q", i, got, want)
 		}
-		if got, want := test.ExpectedResults(), spec.results; got != want {
+		if got, want := join(test.expResults), spec.results; got != want {
 			t.Errorf("test %d: bad expected results: got %q, want %q", i, got, want)
 		}
 	}

@@ -49,7 +49,8 @@ func TestRunSuite(t *testing.T) {
 
 	test := &suite.Tests[0]
 
-	if got, want := test.ObservedResults(), test.ExpectedResults(); got != want {
+	join := byteSlicesToString
+	if got, want := join(test.obsResults), join(test.expResults); got != want {
 		t.Errorf("bad test output: got %q, want %q", got, want)
 	}
 }

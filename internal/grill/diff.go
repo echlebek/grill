@@ -14,14 +14,14 @@ import (
 // TODO so far unused
 const ContextLines = 5
 
-// DiffData contains output difference data for a single test case.
-type DiffData struct {
+// Diff contains output difference data for a single test case.
+type Diff struct {
 	a       [][]byte
 	b       [][]byte
 	changes []diff.Change
 }
 
-func (f DiffData) Equal(i, j int) bool {
+func (f Diff) Equal(i, j int) bool {
 	a := f.a[i]
 	b := f.b[j]
 
@@ -76,41 +76,10 @@ func matchEsc(a, b []byte) bool {
 }
 
 // NewDiff computes difference between two slices of text lines.
-func NewDiff(a, b []byte) DiffData {
-	alines := bytes.Split(a, []byte("\n"))
-	blines := bytes.Split(b, []byte("\n"))
-
-	d := DiffData{a: alines, b: blines}
+func NewDiff(a, b [][]byte) Diff {
+	d := Diff{a: a, b: b}
 	d.changes = diff.Diff(len(d.a), len(d.b), d)
-
 	return d
-}
-
-// ToString formats the diff data into a unified diff.
-func (d DiffData) ToString(name string) []byte {
-	if len(d.changes) == 0 {
-		return nil
-	}
-
-	w := new(bytes.Buffer)
-
-	fmt.Fprint(w, "--- ", name, "\n")
-	fmt.Fprint(w, "+++ ", name, ".err", "\n")
-
-	for _, c := range d.changes {
-		fmt.Fprintf(w, "@@ -%d,%d +%d,%d @@\n", c.A+1, c.Del+1, c.B+1, c.Ins+1)
-
-		delLines := d.a[c.A : c.A+c.Del]
-		insLines := d.b[c.B : c.B+c.Ins]
-
-		for _, line := range delLines {
-			fmt.Fprint(w, "-  ", string(line), "\n")
-		}
-		for _, line := range insLines {
-			fmt.Fprint(w, "+  ", string(line), "\n")
-		}
-	}
-	return w.Bytes()
 }
 
 // Write writes diff in the unified text format.
@@ -118,7 +87,7 @@ func (d DiffData) ToString(name string) []byte {
 // aLineNo and bLineNo set the initial line numbers, which is useful
 // when there's more than one diff in the file. If there's a single
 // diff in the file, then both are set to 1.
-func (d DiffData) Write(w io.Writer, aLineNo int, bLineNo int) error {
+func (d Diff) Write(w io.Writer, aLineNo int, bLineNo int) error {
 	for _, c := range d.changes {
 		aDiff := 0
 		if c.Del == 0 {
@@ -152,7 +121,7 @@ func (d DiffData) Write(w io.Writer, aLineNo int, bLineNo int) error {
 }
 
 // WriteDiff writes suite diff in the unified text format.
-func WriteDiff(w io.Writer, suite *TestSuite) error {
+func (suite *TestSuite) WriteDiff(w io.Writer) error {
 	expLineNo := 1
 	obsLineNo := 1
 

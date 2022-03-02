@@ -9,7 +9,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"syscall"
 )
 
 // TestContext specifies an execution environment for running a test.
@@ -69,60 +68,6 @@ func DefaultTestContext(shell string, stdout, stderr io.Writer) (TestContext, er
 // Cleanup removes the working directory of the test.
 func (t TestContext) Cleanup() error {
 	return os.RemoveAll(t.WorkDir)
-}
-
-// Run runs the test within the TestContext. An non-nil error
-// indicates a failure to run the test. Use Test.Failed() to find
-// out if the test ran but did not produce the expected output.
-func (t *Test) Run(ctx TestContext) error {
-	buf := new(bytes.Buffer)
-	if len(t.command) < 1 {
-		// No command, will be considered skipped
-		return nil
-	}
-
-	var cdr []string
-	if len(ctx.Shell) > 1 {
-		cdr = ctx.Shell[1:]
-	}
-	cmd := exec.Command(ctx.Shell[0], cdr...)
-	cmd.Stdout = buf
-	cmd.Stderr = buf
-	cmd.Stdin = t.Command()
-	cmd.Env = ctx.Environ
-	cmd.Dir = ctx.WorkDir
-
-	var err error
-
-	if err = cmd.Start(); err != nil {
-		return fmt.Errorf("couldn't run command: %s", err)
-	}
-
-	if err = cmd.Wait(); err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			buf.Write(exitErr.Stderr)
-			status := exitErr.Sys()
-			if s, ok := status.(syscall.WaitStatus); ok {
-				fmt.Fprintf(buf, "[%d]", s.ExitStatus())
-			}
-			err = nil
-		} else {
-			panic(fmt.Sprintf("command exited with unexpected error: %s", err))
-		}
-	} else {
-		b := buf.Bytes()
-		if len(b) > 0 && b[len(b)-1] != '\n' {
-			buf.WriteString(" (no-eol)")
-		}
-	}
-
-	t.obsResults = bytes.Split(buf.Bytes(), []byte{'\n'})
-	if len(t.obsResults[len(t.obsResults)-1]) == 0 {
-		t.obsResults = t.obsResults[:len(t.obsResults)-1]
-	}
-
-	t.diff = NewDiff([]byte(t.ExpectedResults()), []byte(t.ObservedResults()))
-	return err
 }
 
 // Run runs the entire suite within the TestContext. An non-nil error
@@ -229,7 +174,7 @@ func (suite *TestSuite) Run(ctx TestContext) error {
 		}
 
 		t.obsResults = lines
-		t.diff = NewDiff([]byte(t.ExpectedResults()), []byte(t.ObservedResults()))
+		t.diff = NewDiff(t.expResults, t.obsResults)
 	}
 
 	if _, err := ctx.Stdout.Write(suite.StatusGlyph()); err != nil {
