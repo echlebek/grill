@@ -3,7 +3,6 @@ package grill
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -16,8 +15,6 @@ type TestContext struct {
 	Environ []string
 	WorkDir string
 	Shell   []string
-	Stdout  io.Writer
-	Stderr  io.Writer
 }
 
 // Default environment variables set by grill.
@@ -39,29 +36,31 @@ GREP_OPTIONS=`
 //
 // As tests execute later on, they will create named sub-directories
 // that will serve as their individual working directories.
-func DefaultTestContext(shell string, stdout, stderr io.Writer) (TestContext, error) {
+func DefaultTestContext(shell string, preserveEnv bool) (TestContext, error) {
 	wd, err := ioutil.TempDir("", "grilltests")
 	td := filepath.Join(wd, "tmp")
 	if err := os.Mkdir(td, 0700); err != nil {
 		return TestContext{}, err
 	}
 
-	env := []string{
+	var env []string
+	env = append(env, os.Environ()...)
+	env = append(env, []string{
 		fmt.Sprintf("TMPDIR=%s", td),
 		fmt.Sprintf("TEMP=%s", td),
 		fmt.Sprintf("TMP=%s", td),
 		fmt.Sprintf("GRILLTMP=%s", td),
 		fmt.Sprintf("CRAMTMP=%s", td),
 		fmt.Sprintf("TESTSHELL=%q", shell),
+	}...)
+	if !preserveEnv {
+		env = append(env, strings.Split(DefaultEnvironment, "\n")...)
 	}
-	env = append(env, strings.Split(DefaultEnvironment, "\n")...)
-	env = append(env, os.Environ()...)
+
 	return TestContext{
 		Shell:   strings.Split(shell, " "),
 		WorkDir: wd,
 		Environ: env,
-		Stdout:  stdout,
-		Stderr:  stderr,
 	}, err
 }
 
@@ -175,10 +174,6 @@ func (suite *TestSuite) Run(ctx TestContext) error {
 
 		t.obsResults = lines
 		t.diff = NewDiff(t.expResults, t.obsResults)
-	}
-
-	if _, err := ctx.Stdout.Write(suite.StatusGlyph()); err != nil {
-		return err
 	}
 
 	return nil

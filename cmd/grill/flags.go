@@ -24,7 +24,7 @@ var opts = struct {
 }{
 	version:     flags.Bool("version", false, "show version information and exit"),
 	quiet:       flags.Bool("quiet", false, "don't print diffs"),
-	verbose:     flags.Bool("verbose", false, "show filenames and test status (unsupported)"),
+	verbose:     flags.Bool("verbose", false, "show filenames and test status"),
 	interactive: flags.Bool("interactive", false, "interactively merge changed test output (unsupported)"),
 	debug:       flags.Bool("debug", false, "write script output directly to the terminal (unsupported)"),
 	yes:         flags.Bool("yes", false, "answer yes to all questions (unsupported)"),

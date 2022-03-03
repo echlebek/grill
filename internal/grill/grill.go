@@ -27,16 +27,30 @@ func (t *Test) Skipped() bool {
 	return len(t.command) == 0
 }
 
-// StatusGlyph returns a sequence of characters
-// that represents the suite overall status and gets normally
-// printed by runner to the progress indicator.
-func (suite TestSuite) StatusGlyph() []byte {
+// Status returns a string that represents the suite's overall status.
+//
+// It is normally used by runner to report the run progress.
+func (suite TestSuite) Status() string {
 	if suite.Failed() {
-		return []byte{'!'}
+		return "failed"
 	} else if suite.Skipped() {
-		return []byte{'s'}
+		return "skipped"
 	} else {
-		return []byte{'.'}
+		return "passed"
+	}
+}
+
+// StatusGlyph returns a one character string that
+// represents the suite's overall status.
+//
+// It is normally used by runner to report the run progress.
+func (suite TestSuite) StatusGlyph() string {
+	if suite.Failed() {
+		return "!"
+	} else if suite.Skipped() {
+		return "s"
+	} else {
+		return "."
 	}
 }
 
@@ -113,9 +127,6 @@ func (suite TestSuite) RemoveErr() error {
 // Setting quiet to true will hide the suite diffs
 // and write out just the status summary.
 func WriteReport(w io.Writer, suites []*TestSuite, quiet bool) error {
-	if _, err := w.Write([]byte{'\n'}); err != nil {
-		return err
-	}
 	tests, failed, skipped := 0, 0, 0
 
 	for _, s := range suites {
@@ -136,6 +147,7 @@ func WriteReport(w io.Writer, suites []*TestSuite, quiet bool) error {
 	if tests == 1 {
 		plural = ""
 	}
+
 	_, err := fmt.Fprintf(w, "# Ran %d test%s, %d skipped, %d failed.\n", tests, plural, skipped, failed)
 	return err
 }
