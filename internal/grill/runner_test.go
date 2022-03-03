@@ -1,7 +1,6 @@
 package grill
 
 import (
-	"bytes"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -22,8 +21,6 @@ func TestRunSuite(t *testing.T) {
 		},
 	}
 
-	stdout := new(bytes.Buffer)
-
 	dir, err := ioutil.TempDir("", "")
 	if err != nil {
 		t.Fatal(err)
@@ -37,7 +34,6 @@ func TestRunSuite(t *testing.T) {
 	}()
 
 	ctx := TestContext{
-		Stdout:  stdout,
 		Shell:   []string{"bash"},
 		WorkDir: dir,
 		Environ: os.Environ(),
@@ -52,5 +48,9 @@ func TestRunSuite(t *testing.T) {
 	join := byteSlicesToString
 	if got, want := join(test.obsResults), join(test.expResults); got != want {
 		t.Errorf("bad test output: got %q, want %q", got, want)
+	}
+
+	if got, want := string(suite.StatusGlyph()), "."; got != want {
+		t.Errorf("bad status output: got %q, want %q", got, want)
 	}
 }
