@@ -151,7 +151,7 @@ func (suite *TestSuite) Run(ctx TestContext) error {
 			len(status), len(suite.Tests))
 	}
 
-	for i, _ := range suite.Tests {
+	for i := range suite.Tests {
 		t := &suite.Tests[i]
 
 		// Test output
@@ -173,7 +173,7 @@ func (suite *TestSuite) Run(ctx TestContext) error {
 		}
 
 		t.obsResults = lines
-		t.diff = NewDiff(t.expResults, t.obsResults)
+		t.changes = Diff(t.expResults, t.obsResults)
 	}
 
 	return nil

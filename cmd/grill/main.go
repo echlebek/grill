@@ -133,7 +133,7 @@ func Main(a []string, stdout, stderr io.Writer) int {
 		}
 	}
 
-	if err := grill.WriteReport(stdout, suites, *opts.quiet); err != nil {
+	if err := grill.WriteReport(stdout, suites, *opts.ctxLen, *opts.quiet); err != nil {
 		log.Println(err)
 		return 1
 	}

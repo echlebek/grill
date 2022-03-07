@@ -66,7 +66,17 @@ func TestGrillFail(t *testing.T) {
 	if !strings.HasPrefix(stdout, "!\n") {
 		t.Errorf("bad stdout: %q", stdout)
 	}
-	if !strings.HasSuffix(stdout, "@@ -4,1 +4,1 @@\n-  foobaz\n+  foobar\n# Ran 1 test, 0 skipped, 1 failed.\n") {
+
+	expSuffix := `
+@@ -1,4 +1,4 @@
+ Here is another example
+ 
+   $ echo foobar
+-  foobaz
++  foobar
+# Ran 1 test, 0 skipped, 1 failed.
+`
+	if !strings.HasSuffix(stdout, expSuffix) {
 		t.Errorf("bad stdout: %q", stdout)
 	}
 }

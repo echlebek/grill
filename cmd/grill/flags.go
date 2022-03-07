@@ -21,6 +21,7 @@ var opts = struct {
 	shellOpts   *string
 	xunitFile   *string
 	indent      *int
+	ctxLen      *int
 }{
 	version:     flags.Bool("version", false, "show version information and exit"),
 	quiet:       flags.Bool("quiet", false, "don't print diffs"),
@@ -35,6 +36,7 @@ var opts = struct {
 	shellOpts:   flags.String("shell-opts", "", "arguments to invoke shell with (unsupported)"),
 	xunitFile:   flags.String("xunit-file", "", "path to write xUnit XML output (unsupported)"),
 	indent:      flags.Int("indent", 2, "number of spaces to use for indentation (unsupported)"),
+	ctxLen:      flags.Int("context-lines", 3, "number of diff context lines to leave around each change"),
 }
 
 func validateOptions() error {

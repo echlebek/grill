@@ -11,17 +11,13 @@ import (
 	"github.com/echlebek/glob"
 )
 
-// TODO so far unused
-const ContextLines = 5
-
-// Diff contains output difference data for a single test case.
-type Diff struct {
-	a       [][]byte
-	b       [][]byte
-	changes []diff.Change
+// DiffData contains data for computing difference between two blocks of lines.
+type DiffData struct {
+	a [][]byte
+	b [][]byte
 }
 
-func (f Diff) Equal(i, j int) bool {
+func (f DiffData) Equal(i, j int) bool {
 	a := f.a[i]
 	b := f.b[j]
 
@@ -75,55 +71,215 @@ func matchEsc(a, b []byte) bool {
 	return s == string(b)
 }
 
-// NewDiff computes difference between two slices of text lines.
-func NewDiff(a, b [][]byte) Diff {
-	d := Diff{a: a, b: b}
-	d.changes = diff.Diff(len(d.a), len(d.b), d)
-	return d
+// Diff computes change between expected sequence of
+// lines (a) and observed sequence of lines (b)
+func Diff(a, b [][]byte) []*Change {
+	d := DiffData{a: a, b: b}
+	var changes []*Change
+
+	for _, c := range diff.Diff(len(d.a), len(d.b), d) {
+		changes = append(changes, &Change{
+			A:   c.A,
+			B:   c.B,
+			Del: c.Del,
+			Ins: c.Ins,
+		})
+	}
+
+	return changes
 }
 
-// Write writes diff in the unified text format.
+// Change is a single block of differences between two sequences of lines.
 //
-// aLineNo and bLineNo set the initial line numbers, which is useful
-// when there's more than one diff in the file. If there's a single
-// diff in the file, then both are set to 1.
-func (d Diff) Write(w io.Writer, aLineNo int, bLineNo int) error {
-	for _, c := range d.changes {
-		aDiff := 0
-		if c.Del == 0 {
-			aDiff -= 1
-		}
+// A/Del indexes the expected lines and B/Ins indexes the observed lines.
+//
+// Change that represents diff context with unchanged lines has zero Del
+// and Ins counts and non-zero Same count.
+type Change struct {
+	A    int
+	B    int
+	Del  int
+	Ins  int
+	Same int
+}
 
-		bDiff := 0
-		if c.Ins == 0 {
-			bDiff -= 1
-		}
+// Hunk is a continuous sequence of changes with overlapping contexts.
+//
+// Context blocks are represented by changes where len(Same)>0 and are
+// inserted automatically when new changes are appendeed and when
+// hunk is finalized.
+type Hunk struct {
+	changes []*Change
+	ctxLen  int
+}
 
-		fmt.Fprintf(w, "@@ -%d,%d +%d,%d @@\n",
-			c.A+aLineNo+aDiff, c.Del,
-			c.B+bLineNo+bDiff, c.Ins)
+// NewHunk creates a new hunk with a single change.
+func NewHunk(c *Change, ctxLen int) *Hunk {
+	// First change; insert leading context
+	// Populate B since it's necessary to produce header.
+	same := intMin(c.A, ctxLen)
+	if same != intMin(c.B, ctxLen) {
+		panic("before/after diff offsets don't match")
+	}
+	ctx := &Change{
+		A:    intMax(0, c.A-ctxLen),
+		B:    intMax(0, c.B-ctxLen),
+		Same: same,
+	}
+	return &Hunk{
+		changes: []*Change{ctx, c},
+		ctxLen:  ctxLen,
+	}
+}
 
-		delLines := d.a[c.A : c.A+c.Del]
-		insLines := d.b[c.B : c.B+c.Ins]
+// AppendChange appends new change to the end of the hunk.
+func (h *Hunk) AppendChange(c *Change) {
+	// Context between last change and this one
+	prev := h.changes[len(h.changes)-1]
+	if prev.Same > 0 {
+		panic("hunk has already been finalized")
+	}
 
-		for _, line := range delLines {
-			if _, err := fmt.Fprint(w, "-  ", string(line), "\n"); err != nil {
-				return err
+	start := prev.A + prev.Del
+	ctx := &Change{
+		A:    start,
+		Same: c.A - start,
+	}
+	h.changes = append(h.changes, ctx, c)
+}
+
+// Finalize marks hunk as complete.
+//
+// After hunk is finalized, no more changes can be added.
+func (h *Hunk) Finalize(numLinesA int) {
+	// Add tail context
+	prev := h.changes[len(h.changes)-1]
+	start := prev.A + prev.Del
+	ctx := &Change{
+		A:    start,
+		Same: intMin(h.ctxLen, numLinesA-start),
+	}
+	h.changes = append(h.changes, ctx)
+}
+
+// Write writes hunk in a unified diff format.
+func (h *Hunk) Write(w io.Writer, linesA [][]byte, linesB [][]byte) error {
+	numDel, numIns := 0, 0
+	for _, c := range h.changes {
+		numDel += c.Del + c.Same
+		numIns += c.Ins + c.Same
+	}
+
+	dA := 0
+	if numDel == 0 {
+		dA -= 1
+	}
+
+	dB := 0
+	if numIns == 0 {
+		dB -= 1
+	}
+
+	lead := h.changes[0]
+
+	_, err := fmt.Fprintf(w, "@@ -%d,%d +%d,%d @@\n", lead.A+dA+1, numDel, lead.B+dB+1, numIns)
+	if err != nil {
+		return err
+	}
+
+	for _, c := range h.changes {
+		if c.Same > 0 {
+			for _, line := range linesA[c.A : c.A+c.Same] {
+				if _, err := fmt.Fprint(w, " ", string(line), "\n"); err != nil {
+					return err
+				}
 			}
-		}
-		for _, line := range insLines {
-			if _, err := fmt.Fprint(w, "+  ", escape(line), "\n"); err != nil {
-				return err
+		} else {
+			for _, line := range linesA[c.A : c.A+c.Del] {
+				if _, err := fmt.Fprint(w, "-", string(line), "\n"); err != nil {
+					return err
+				}
+			}
+			for _, line := range linesB[c.B : c.B+c.Ins] {
+				if _, err := fmt.Fprint(w, "+", escape(line), "\n"); err != nil {
+					return err
+				}
 			}
 		}
 	}
 	return nil
 }
 
+// CreateHunks creates a sequence of hunks from a sequence of changes.
+//
+// aLen is the total number of expected (old) lines. ctxLen is the number
+// of context lines to print before/after each change.
+//
+// If contexts of a of adjacent changes overlap, then the following
+// change is merged into the preceding one.
+func CreateHunks(changes []*Change, aLen int, ctxLen int) []*Hunk {
+	var hunks []*Hunk
+	var h *Hunk
+	var prev *Change
+
+	for _, c := range changes {
+		if len(hunks) == 0 || c.A-(prev.A+prev.Del) > 2*ctxLen {
+			h = NewHunk(c, ctxLen)
+			hunks = append(hunks, h)
+		} else {
+			h.AppendChange(c)
+		}
+		prev = c
+	}
+
+	for _, h := range hunks {
+		h.Finalize(aLen)
+	}
+
+	return hunks
+}
+
 // WriteDiff writes suite diff in the unified text format.
-func (suite *TestSuite) WriteDiff(w io.Writer) error {
-	expLineNo := 1
-	obsLineNo := 1
+func (suite *TestSuite) WriteDiff(w io.Writer, ctxLen int) error {
+	var expLines [][]byte
+	var obsLines [][]byte
+	var changes []*Change
+
+	for _, t := range suite.Tests {
+		var cmdLines [][]byte
+		for i, line := range t.command {
+			if i == 0 {
+				cmdLines = append(cmdLines, append([]byte("  $ "), line...))
+			} else {
+				cmdLines = append(cmdLines, append([]byte("  > "), line...))
+			}
+		}
+
+		expLines = append(expLines, t.doc...)
+		expLines = append(expLines, cmdLines...)
+
+		obsLines = append(obsLines, t.doc...)
+		obsLines = append(obsLines, cmdLines...)
+
+		for _, c := range t.changes {
+			// Convert to absolute offsets.
+			changes = append(changes, &Change{
+				A:   c.A + len(expLines),
+				B:   c.B + len(obsLines),
+				Del: c.Del,
+				Ins: c.Ins,
+			})
+		}
+
+		for _, line := range t.expResults {
+			expLines = append(expLines, append([]byte("  "), line...))
+		}
+		for _, line := range t.obsResults {
+			obsLines = append(obsLines, append([]byte("  "), line...))
+		}
+	}
+
+	hunks := CreateHunks(changes, len(expLines), ctxLen)
 
 	if _, err := fmt.Fprint(w, "--- ", suite.Name, "\n"); err != nil {
 		return err
@@ -132,18 +288,27 @@ func (suite *TestSuite) WriteDiff(w io.Writer) error {
 		return err
 	}
 
-	for _, t := range suite.Tests {
-		d := t.diff
-
-		expOutLineNo := expLineNo + len(t.doc) + len(t.command)
-		obsOutLineNo := obsLineNo + len(t.doc) + len(t.command)
-
-		if err := d.Write(w, expOutLineNo, obsOutLineNo); err != nil {
+	for _, h := range hunks {
+		if err := h.Write(w, expLines, obsLines); err != nil {
 			return err
 		}
-
-		expLineNo = expOutLineNo + len(t.expResults)
-		obsLineNo = obsOutLineNo + len(t.obsResults)
 	}
+
 	return nil
+}
+
+func intMin(a, b int) int {
+	if a < b {
+		return a
+	} else {
+		return b
+	}
+}
+
+func intMax(a, b int) int {
+	if a > b {
+		return a
+	} else {
+		return b
+	}
 }
