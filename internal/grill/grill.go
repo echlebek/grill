@@ -16,11 +16,11 @@ type Test struct {
 	command    [][]byte
 	expResults [][]byte
 	obsResults [][]byte
-	diff       Diff
+	changes    []*Change
 }
 
 func (t *Test) Failed() bool {
-	return len(t.diff.changes) > 0
+	return len(t.changes) > 0
 }
 
 func (t *Test) Skipped() bool {
@@ -126,14 +126,14 @@ func (suite TestSuite) RemoveErr() error {
 //
 // Setting quiet to true will hide the suite diffs
 // and write out just the status summary.
-func WriteReport(w io.Writer, suites []*TestSuite, quiet bool) error {
+func WriteReport(w io.Writer, suites []*TestSuite, ctxLen int, quiet bool) error {
 	tests, failed, skipped := 0, 0, 0
 
 	for _, s := range suites {
 		if s.Failed() {
 			failed++
 			if !quiet {
-				if err := s.WriteDiff(w); err != nil {
+				if err := s.WriteDiff(w, ctxLen); err != nil {
 					return fmt.Errorf("couldn't write %q: %s", s.Name+".err", err)
 				}
 			}
