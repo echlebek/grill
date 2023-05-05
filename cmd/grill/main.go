@@ -67,6 +67,11 @@ func Main(a []string, stdout, stderr io.Writer) int {
 		return 2
 	}
 
+	if err := validateOptions(); err != nil {
+		fmt.Fprintln(stderr, err)
+		return 2
+	}
+
 	context, err := grill.DefaultTestContext(*opts.shell, *opts.preserveEnv)
 	if err != nil {
 		log.Println(err)
